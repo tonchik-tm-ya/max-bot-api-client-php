@@ -93,7 +93,7 @@ final class ClientTest extends TestCase
                 'access_token' => self::FAKE_TOKEN,
                 'v' => self::API_VERSION,
             ]);
-        $responsePayload = ['ok' => true, 'result' => ['id' => 987, 'name' => 'TestBot']];
+        $responsePayload = ['id' => 987, 'name' => 'TestBot'];
 
         // Configure mocks for this specific test
         $this->requestFactoryMock
