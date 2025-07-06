@@ -1,0 +1,61 @@
+name: CI
+
+on: [ push, pull_request ]
+
+jobs:
+
+  phpstan:
+
+    name: phpstan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Install composer dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Run Static Analysis
+        run: ./vendor/bin/phpstan analyse -c phpstan.neon --error-format=github
+
+  tests:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: [ "8.3", "8.4" ]
+    name: PHP ${{ matrix.php-versions }} Test on ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: xdebug
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: PHPUnit
+        run: ./vendor/bin/phpunit --configuration=phpunit.xml --coverage-text
