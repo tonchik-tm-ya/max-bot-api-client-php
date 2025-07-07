@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Models;
 
 /**
- * Information about the current bot, which is identified using an access token.
+ * Information about the current bot.
  */
 final readonly class BotInfo extends AbstractModel
 {
     /**
-     * @param int $user_id ID user
-     * @param string $first_name User display name
-     * @param string|null $last_name User's display last name
-     * @param string|null $username Unique public name of the user, may be null if the user is not available or no name is set
-     * @param bool $is_bot Is the user a bot
-     * @param int $last_activity_time User last activity time in MAX (Unix time in milliseconds). May be irrelevant if the user has disabled the "online" status in the settings
-     * @param string|null $description User description, may be null if the user has not filled it in (up to 16000 characters)
-     * @param string|null $avatar_url Avatar URL
-     * @param string|null $full_avatar_url Larger Avatar URL
-     * @param BotCommand[]|null $commands Commands supported by the bot (up to 32 elements)
+     * @param int $user_id ID user.
+     * @param string $first_name User display name.
+     * @param string|null $last_name User's display last name.
+     * @param string|null $username Unique public name of the user, may be null if the user is not available or no name is set.
+     * @param bool $is_bot Is the user a bot.
+     * @param int $last_activity_time User last activity time in MAX (Unix time in milliseconds). May be irrelevant if the user has disabled the "online" status in the settings.
+     * @param string|null $description User description, may be null if the user has not filled it in (up to 16000 characters).
+     * @param string|null $avatar_url Avatar URL.
+     * @param string|null $full_avatar_url Larger Avatar URL.
+     * @param BotCommand[]|null $commands Commands supported by the bot (up to 32 elements).
      */
     public function __construct(
         public int $user_id,

@@ -35,6 +35,8 @@ final class Client implements ClientApiInterface
      * @param RequestFactoryInterface $requestFactory A PSR-17 factory for creating requests.
      * @param StreamFactoryInterface $streamFactory A PSR-17 factory for creating request body streams.
      * @param string $apiVersion The API version to use for requests.
+     *
+     * @throws InvalidArgumentException
      */
     public function __construct(
         private readonly string $accessToken,
