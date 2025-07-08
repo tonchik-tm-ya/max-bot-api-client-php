@@ -8,7 +8,9 @@ use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\ResultModel;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\SubscriptionRequestBody;
 use InvalidArgumentException;
 
 /**
@@ -20,7 +22,7 @@ use InvalidArgumentException;
 class Api
 {
     private const string METHOD_GET = 'GET';
-    //    private const string METHOD_POST = 'POST';
+    private const string METHOD_POST = 'POST';
     //    private const string METHOD_DELETE = 'DELETE';
 
     private const string ACTION_ME = '/me';
@@ -82,6 +84,29 @@ class Api
     {
         return $this->modelFactory->createSubscriptions(
             $this->client->request(self::METHOD_GET, self::ACTION_SUBSCRIPTIONS)
+        );
+    }
+
+    /**
+     * Subscribes the bot to receive updates via WebHook.
+     *
+     * @param SubscriptionRequestBody $body
+     *
+     * @return ResultModel
+     *
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     */
+    public function subscribe(SubscriptionRequestBody $body): ResultModel
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_POST,
+                self::ACTION_SUBSCRIPTIONS,
+                [],
+                $body->toArray(),
+            )
         );
     }
 }

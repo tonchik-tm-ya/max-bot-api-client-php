@@ -16,6 +16,25 @@ abstract readonly class AbstractModel
      */
     public function toArray(): array
     {
-        return get_object_vars($this);
+        return array_map(function ($value) {
+            return $this->convertValue($value);
+        }, get_object_vars($this));
+    }
+
+    private function convertValue(mixed $value): mixed
+    {
+        if ($value instanceof AbstractModel) {
+            return $value->toArray();
+        }
+
+        if (is_array($value)) {
+            return array_map([$this, 'convertValue'], $value);
+        }
+
+        if ($value instanceof \BackedEnum) {
+            return $value->value;
+        }
+
+        return $value;
     }
 }
