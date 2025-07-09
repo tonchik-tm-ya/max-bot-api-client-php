@@ -7,24 +7,31 @@ namespace BushlanovDev\MaxMessengerBot\Tests;
 use BushlanovDev\MaxMessengerBot\Api;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
+use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 #[CoversClass(Api::class)]
-#[UsesClass(BotInfo::class)]
 #[UsesClass(Client::class)]
+#[UsesClass(BotInfo::class)]
+#[UsesClass(Subscription::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
     private MockObject&ModelFactory $modelFactoryMock;
     private Api $api;
 
+    /**
+     * @throws Exception
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -43,11 +50,9 @@ final class ApiTest extends TestCase
         $reflection = new ReflectionClass($api);
 
         $clientProp = $reflection->getProperty('client');
-        $clientProp->setAccessible(true);
         $this->assertInstanceOf(ClientApiInterface::class, $clientProp->getValue($api));
 
         $factoryProp = $reflection->getProperty('modelFactory');
-        $factoryProp->setAccessible(true);
         $this->assertInstanceOf(ModelFactory::class, $factoryProp->getValue($api));
     }
 
@@ -56,7 +61,7 @@ final class ApiTest extends TestCase
     {
         $rawResponseData = ['user_id' => 123, 'first_name' => 'ApiTestBot'];
 
-        $expectedBotInfo = new BotInfo(
+        $botInfo = new BotInfo(
             123,
             'ApiTestBot',
             null, null, true, 0, null, null, null, null,
@@ -72,10 +77,51 @@ final class ApiTest extends TestCase
             ->expects($this->once())
             ->method('createBotInfo')
             ->with($rawResponseData)
-            ->willReturn($expectedBotInfo);
+            ->willReturn($botInfo);
 
         $result = $this->api->getBotInfo();
 
-        $this->assertSame($expectedBotInfo, $result);
+        $this->assertSame($botInfo, $result);
+    }
+
+    #[Test]
+    public function testSubscribeCallsClientAndFactoryCorrectly(): void
+    {
+        $rawResponseData = [
+            'subscriptions' => [
+                [
+                    'url' => 'https://example.com/webhook',
+                    'time' => 1678886400000,
+                    'update_types' => ['message_created'],
+                    'version' => '0.0.1',
+                ],
+            ],
+        ];
+
+        $subscription = new Subscription(
+            'https://example.com/webhook',
+            1678886400000,
+            [UpdateType::MessageCreated],
+            '0.0.1',
+        );
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/subscriptions')
+            ->willReturn($rawResponseData);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createSubscriptions')
+            ->with($rawResponseData)
+            ->willReturn([$subscription]);
+
+        $result = $this->api->getSubscriptions();
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $result);
+        $this->assertInstanceOf(Subscription::class, $result[0]);
+        $this->assertSame(UpdateType::MessageCreated, $result[0]->update_types[0]);
     }
 }

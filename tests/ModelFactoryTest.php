@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Tests;
 
+use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Result;
+use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -15,6 +18,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ModelFactory::class)]
 #[UsesClass(BotInfo::class)]
 #[UsesClass(BotCommand::class)]
+#[UsesClass(Result::class)]
+#[UsesClass(Subscription::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -23,6 +28,33 @@ final class ModelFactoryTest extends TestCase
     {
         parent::setUp();
         $this->factory = new ModelFactory();
+    }
+
+    #[Test]
+    public function createResultSuccessfully(): void
+    {
+        $rawData = ['success' => true];
+
+        $result = $this->factory->createResult($rawData);
+
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertTrue($result->success);
+        $this->assertNull($result->message);
+    }
+
+    #[Test]
+    public function createResultNotSuccessfully()
+    {
+        $rawData = [
+            'success' => false,
+            'message' => 'error message',
+        ];
+
+        $result = $this->factory->createResult($rawData);
+
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertFalse($result->success);
+        $this->assertSame('error message', $result->message);
     }
 
     #[Test]
@@ -77,5 +109,27 @@ final class ModelFactoryTest extends TestCase
 
         $this->assertInstanceOf(BotInfo::class, $botInfo);
         $this->assertNull($botInfo->commands);
+    }
+
+    #[Test]
+    public function createSubscriptions(): void
+    {
+        $rawData = [
+            'subscriptions' => [
+                [
+                    'url' => 'https://example.com/webhook',
+                    'time' => 1678886400000,
+                    'update_types' => ['message_created'],
+                    'version' => '0.0.1',
+                ],
+            ],
+        ];
+
+        $subscriptions = $this->factory->createSubscriptions($rawData);
+
+        $this->assertIsArray($subscriptions);
+        $this->assertCount(1, $subscriptions);
+        $this->assertInstanceOf(Subscription::class, $subscriptions[0]);
+        $this->assertSame(UpdateType::MessageCreated, $subscriptions[0]->update_types[0]);
     }
 }

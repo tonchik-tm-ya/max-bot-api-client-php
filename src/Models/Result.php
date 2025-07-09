@@ -7,7 +7,7 @@ namespace BushlanovDev\MaxMessengerBot\Models;
 /**
  * Simple response to request.
  */
-final readonly class ResultModel extends AbstractModel
+final readonly class Result extends AbstractModel
 {
     /**
      * @param bool $success true if request was successful, false otherwise.

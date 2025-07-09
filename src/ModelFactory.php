@@ -6,7 +6,7 @@ namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
-use BushlanovDev\MaxMessengerBot\Models\ResultModel;
+use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 
 /**
@@ -19,11 +19,11 @@ class ModelFactory
      *
      * @param array<string, mixed> $data
      *
-     * @return ResultModel
+     * @return Result
      */
-    public function createResult(array $data): ResultModel
+    public function createResult(array $data): Result
     {
-        return ResultModel::fromArray($data);
+        return Result::fromArray($data);
     }
 
     /**

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot;
 
+use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
-use BushlanovDev\MaxMessengerBot\Models\ResultModel;
+use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
-use BushlanovDev\MaxMessengerBot\Models\SubscriptionRequestBody;
 use InvalidArgumentException;
 
 /**
@@ -23,7 +23,7 @@ class Api
 {
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
-    //    private const string METHOD_DELETE = 'DELETE';
+    private const string METHOD_DELETE = 'DELETE';
 
     private const string ACTION_ME = '/me';
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
@@ -90,22 +90,41 @@ class Api
     /**
      * Subscribes the bot to receive updates via WebHook.
      *
-     * @param SubscriptionRequestBody $body
+     * @param string $url URL webhook.
+     * @param string|null $secret Secret key for verifying the authenticity of requests.
+     * @param UpdateType[]|null $update_types List of update types.
      *
-     * @return ResultModel
-     *
-     * @throws ClientApiException
-     * @throws NetworkException
-     * @throws SerializationException
+     * @return Result
      */
-    public function subscribe(SubscriptionRequestBody $body): ResultModel
-    {
+    public function subscribe(
+        string $url,
+        ?string $secret = null,
+        ?array $update_types = null,
+    ): Result {
         return $this->modelFactory->createResult(
             $this->client->request(
                 self::METHOD_POST,
                 self::ACTION_SUBSCRIPTIONS,
                 [],
-                $body->toArray(),
+                compact('url', 'secret', 'update_types'),
+            )
+        );
+    }
+
+    /**
+     * Unsubscribes bot from receiving updates via WebHook.
+     *
+     * @param string $url URL webhook.
+     *
+     * @return Result
+     */
+    public function unsubscribe(string $url): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                self::ACTION_SUBSCRIPTIONS,
+                compact('url'),
             )
         );
     }
