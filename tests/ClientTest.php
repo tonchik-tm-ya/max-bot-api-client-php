@@ -117,6 +117,69 @@ final class ClientTest extends TestCase
     }
 
     #[Test]
+    public function successfulPostRequestWithJsonBody(): void
+    {
+        $uri = '/subscriptions';
+        $requestBody = [
+            'subscriptions' => [
+                [
+                    'url' => 'https://example.com/webhook',
+                    'time' => 1678886400000,
+                    'update_types' => ['message_created'],
+                    'version' => '0.0.1',
+                ],
+            ],
+        ];
+        $responsePayload = ['success' => true];
+
+        $expectedUrl = self::API_BASE_URL . $uri . '?' . http_build_query([
+                'access_token' => self::FAKE_TOKEN,
+                'v' => self::API_VERSION
+            ]);
+
+        $this->requestFactoryMock
+            ->expects($this->once())
+            ->method('createRequest')
+            ->with('POST', $expectedUrl)
+            ->willReturn($this->requestMock);
+
+        $this->streamFactoryMock
+            ->expects($this->once())
+            ->method('createStream')
+            ->with(json_encode($requestBody))
+            ->willReturn($this->streamMock);
+
+        $this->requestMock
+            ->expects($this->once())
+            ->method('withBody')
+            ->with($this->streamMock)
+            ->willReturn($this->requestMock);
+
+        $this->requestMock
+            ->expects($this->once())
+            ->method('withHeader')
+            ->with('Content-Type', 'application/json; charset=utf-8')
+            ->willReturn($this->requestMock);
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
+
+        $result = $this->client->request('POST', $uri, [], $requestBody);
+        $this->assertSame($responsePayload, $result);
+    }
+
+    #[Test]
+    public function handlesEmptySuccessfulResponse(): void
+    {
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn('');
+
+        $result = $this->client->request('DELETE', '/subscriptions');
+
+        $this->assertSame(['success' => true], $result);
+    }
+
+    #[Test]
     public function throwsNetworkExceptionOnClientError(): void
     {
         $this->expectException(NetworkException::class);

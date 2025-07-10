@@ -10,6 +10,7 @@ use BushlanovDev\MaxMessengerBot\ClientApiInterface;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 #[CoversClass(Api::class)]
+#[UsesClass(Result::class)]
 #[UsesClass(Client::class)]
 #[UsesClass(BotInfo::class)]
 #[UsesClass(Subscription::class)]
@@ -123,5 +125,93 @@ final class ApiTest extends TestCase
         $this->assertCount(1, $result);
         $this->assertInstanceOf(Subscription::class, $result[0]);
         $this->assertSame(UpdateType::MessageCreated, $result[0]->update_types[0]);
+    }
+
+    #[Test]
+    public function subscribeCallsClientWithAllParameters(): void
+    {
+        $url = 'https://example.com/webhook';
+        $secret = 'secure';
+        $updateTypes = [UpdateType::MessageCreated, UpdateType::BotStarted];
+        $updateTypesAsStrings = array_map(fn($type) => $type->value, $updateTypes);
+
+        $expectedBody = [
+            'url' => $url,
+            'secret' => $secret,
+            'update_types' => $updateTypesAsStrings,
+        ];
+
+        $rawClientResponse = ['success' => true];
+        $expectedResultObject = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/subscriptions', [], $expectedBody)
+            ->willReturn($rawClientResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawClientResponse)
+            ->willReturn($expectedResultObject);
+
+        $result = $this->api->subscribe($url, $secret, $updateTypes);
+        $this->assertSame($expectedResultObject, $result);
+    }
+
+    #[Test]
+    public function subscribeHandlesOptionalParametersAsNull(): void
+    {
+        $url = 'https://example.com/webhook';
+
+        $expectedBody = [
+            'url' => $url,
+            'secret' => null,
+            'update_types' => null,
+        ];
+
+        $rawClientResponse = ['success' => true];
+        $expectedResultObject = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/subscriptions', [], $expectedBody)
+            ->willReturn($rawClientResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawClientResponse)
+            ->willReturn($expectedResultObject);
+
+        $result = $this->api->subscribe($url);
+        $this->assertSame($expectedResultObject, $result);
+    }
+
+    #[Test]
+    public function unsubscribeCallsClientWithCorrectParameters(): void
+    {
+        $url = 'https://example.com/webhook';
+        $expectedQueryParams = ['url' => $url];
+
+        $rawClientResponse = ['success' => true];
+        $expectedResultObject = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('DELETE', '/subscriptions', $expectedQueryParams, [])
+            ->willReturn($rawClientResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawClientResponse)
+            ->willReturn($expectedResultObject);
+
+        $result = $this->api->unsubscribe($url);
+        $this->assertSame($expectedResultObject, $result);
     }
 }

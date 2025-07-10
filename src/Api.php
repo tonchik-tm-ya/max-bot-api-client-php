@@ -106,7 +106,11 @@ class Api
                 self::METHOD_POST,
                 self::ACTION_SUBSCRIPTIONS,
                 [],
-                compact('url', 'secret', 'update_types'),
+                [
+                    'url' => $url,
+                    'secret' => $secret,
+                    'update_types' => $update_types ? array_map(fn($type) => $type->value, $update_types) : null,
+                ]
             )
         );
     }
