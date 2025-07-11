@@ -124,7 +124,7 @@ final class ApiTest extends TestCase
         $this->assertIsArray($result);
         $this->assertCount(1, $result);
         $this->assertInstanceOf(Subscription::class, $result[0]);
-        $this->assertSame(UpdateType::MessageCreated, $result[0]->update_types[0]);
+        $this->assertSame(UpdateType::MessageCreated, $result[0]->updateTypes[0]);
     }
 
     #[Test]

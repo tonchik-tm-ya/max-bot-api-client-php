@@ -6,8 +6,10 @@ namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Exceptions\ForbiddenException;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
+use BushlanovDev\MaxMessengerBot\Exceptions\MethodNotAllowedException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NotFoundException;
+use BushlanovDev\MaxMessengerBot\Exceptions\RateLimitExceededException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Exceptions\UnauthorizedException;
 use InvalidArgumentException;
@@ -121,6 +123,8 @@ final class Client implements ClientApiInterface
             401 => new UnauthorizedException($errorMessage, $errorCode, $response),
             403 => new ForbiddenException($errorMessage, $errorCode, $response),
             404 => new NotFoundException($errorMessage, $errorCode, $response),
+            405 => new MethodNotAllowedException($errorMessage, $errorCode, $response),
+            429 => new RateLimitExceededException($errorMessage, $errorCode, $response),
             default => new ClientApiException($errorMessage, $errorCode, $response, $statusCode),
         };
 

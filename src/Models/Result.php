@@ -18,15 +18,4 @@ final readonly class Result extends AbstractModel
         public ?string $message,
     ) {
     }
-
-    /**
-     * @inheritDoc
-     */
-    public static function fromArray(array $data): static
-    {
-        return new static(
-            (bool)$data['success'],
-            $data['message'] ?? null,
-        );
-    }
 }

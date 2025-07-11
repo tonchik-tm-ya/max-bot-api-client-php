@@ -7,8 +7,10 @@ namespace BushlanovDev\MaxMessengerBot\Tests;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\ForbiddenException;
+use BushlanovDev\MaxMessengerBot\Exceptions\MethodNotAllowedException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NotFoundException;
+use BushlanovDev\MaxMessengerBot\Exceptions\RateLimitExceededException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Exceptions\UnauthorizedException;
 use InvalidArgumentException;
@@ -224,10 +226,17 @@ final class ClientTest extends TestCase
     public static function apiErrorProvider(): array
     {
         return [
+            '400 Bad Request' => [400, ClientApiException::class, 'bad.request', 'Invalid parameters'],
             '401 Unauthorized' => [401, UnauthorizedException::class, 'verify.token', 'Invalid access_token'],
             '403 Forbidden' => [403, ForbiddenException::class, 'access.denied', 'You don\'t have permissions'],
             '404 Not Found' => [404, NotFoundException::class, 'not.found', 'Resource not found'],
-            '400 Bad Request' => [400, ClientApiException::class, 'bad.request', 'Invalid parameters'],
+            '405 Method Not Allowed' => [
+                405,
+                MethodNotAllowedException::class,
+                'method.not.allowed',
+                'Method not allowed',
+            ],
+            '429 Rate Limit' => [429, RateLimitExceededException::class, 'rate.limit', 'Rate limit exceeded'],
             '503 Service Unavailable' => [
                 503,
                 ClientApiException::class,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Tests;
 
+use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(BotCommand::class)]
 #[UsesClass(Result::class)]
 #[UsesClass(Subscription::class)]
+#[UsesClass(ArrayOf::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -79,7 +81,7 @@ final class ModelFactoryTest extends TestCase
         $botInfo = $this->factory->createBotInfo($rawData);
 
         $this->assertInstanceOf(BotInfo::class, $botInfo);
-        $this->assertSame(12345, $botInfo->user_id);
+        $this->assertSame(12345, $botInfo->userId);
 
         $this->assertIsArray($botInfo->commands);
         $this->assertCount(2, $botInfo->commands);
@@ -130,6 +132,6 @@ final class ModelFactoryTest extends TestCase
         $this->assertIsArray($subscriptions);
         $this->assertCount(1, $subscriptions);
         $this->assertInstanceOf(Subscription::class, $subscriptions[0]);
-        $this->assertSame(UpdateType::MessageCreated, $subscriptions[0]->update_types[0]);
+        $this->assertSame(UpdateType::MessageCreated, $subscriptions[0]->updateTypes[0]);
     }
 }

@@ -12,6 +12,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use InvalidArgumentException;
+use ReflectionException;
 
 /**
  * The main entry point for interacting with the Max Bot API.
@@ -63,6 +64,7 @@ class Api
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
+     * @throws ReflectionException
      */
     public function getBotInfo(): BotInfo
     {
@@ -79,6 +81,7 @@ class Api
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
+     * @throws ReflectionException
      */
     public function getSubscriptions(): array
     {
@@ -92,14 +95,19 @@ class Api
      *
      * @param string $url URL webhook.
      * @param string|null $secret Secret key for verifying the authenticity of requests.
-     * @param UpdateType[]|null $update_types List of update types.
+     * @param UpdateType[]|null $updateTypes List of update types.
      *
      * @return Result
+     *
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws ReflectionException
      */
     public function subscribe(
         string $url,
         ?string $secret = null,
-        ?array $update_types = null,
+        ?array $updateTypes = null,
     ): Result {
         return $this->modelFactory->createResult(
             $this->client->request(
@@ -109,7 +117,7 @@ class Api
                 [
                     'url' => $url,
                     'secret' => $secret,
-                    'update_types' => $update_types ? array_map(fn($type) => $type->value, $update_types) : null,
+                    'update_types' => !empty($updateTypes) ? array_map(fn($type) => $type->value, $updateTypes) : null,
                 ]
             )
         );
@@ -121,6 +129,11 @@ class Api
      * @param string $url URL webhook.
      *
      * @return Result
+     *
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws ReflectionException
      */
     public function unsubscribe(string $url): Result
     {

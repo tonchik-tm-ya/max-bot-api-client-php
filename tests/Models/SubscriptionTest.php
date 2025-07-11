@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Tests\Models;
 
+use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Subscription::class)]
+#[UsesClass(ArrayOf::class)]
 final class SubscriptionTest extends TestCase
 {
     #[Test]
@@ -28,7 +31,7 @@ final class SubscriptionTest extends TestCase
         $this->assertInstanceOf(Subscription::class, $subscription);
         $this->assertSame($data['url'], $subscription->url);
         $this->assertSame($data['time'], $subscription->time);
-        $this->assertSame([UpdateType::MessageCreated, UpdateType::BotStarted], $subscription->update_types);
+        $this->assertSame([UpdateType::MessageCreated, UpdateType::BotStarted], $subscription->updateTypes);
         $this->assertSame($data['version'], $subscription->version);
 
         $array = $subscription->toArray();
@@ -52,7 +55,7 @@ final class SubscriptionTest extends TestCase
         $this->assertInstanceOf(Subscription::class, $subscription);
         $this->assertSame($data['url'], $subscription->url);
         $this->assertSame($data['time'], $subscription->time);
-        $this->assertNull($subscription->update_types);
+        $this->assertNull($subscription->updateTypes);
         $this->assertNull($subscription->version);
 
         $array = $subscription->toArray();

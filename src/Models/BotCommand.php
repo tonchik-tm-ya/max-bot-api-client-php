@@ -18,15 +18,4 @@ final readonly class BotCommand extends AbstractModel
         public ?string $description,
     ) {
     }
-
-    /**
-     * @inheritdoc
-     */
-    public static function fromArray(array $data): static
-    {
-        return new static(
-            (string)$data['name'],
-            $data['description'] ? (string)$data['description'] : null
-        );
-    }
 }

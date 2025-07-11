@@ -38,12 +38,10 @@ final class BotCommandTest extends TestCase
     #[Test]
     public function canBeCreatedFromArrayWithOptionalDataNull(): void
     {
-        $data = [
+        $command = BotCommand::fromArray([
             'name' => 'help',
             'description' => null,
-        ];
-
-        $command = BotCommand::fromArray($data);
+        ]);
 
         $this->assertInstanceOf(BotCommand::class, $command);
         $this->assertSame('help', $command->name);

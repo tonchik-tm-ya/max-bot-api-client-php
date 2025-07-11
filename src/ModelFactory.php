@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot;
 
-use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use ReflectionException;
 
 /**
  * Creates DTOs from raw associative arrays returned by the API client.
@@ -20,6 +20,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Result
+     * @throws ReflectionException
      */
     public function createResult(array $data): Result
     {
@@ -32,12 +33,10 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return BotInfo
+     * @throws ReflectionException
      */
     public function createBotInfo(array $data): BotInfo
     {
-        $data['commands'] = isset($data['commands']) && is_array($data['commands'])
-            ? array_map([BotCommand::class, 'fromArray'], $data['commands']) : null;
-
         return BotInfo::fromArray($data);
     }
 
@@ -47,6 +46,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Subscription
+     * @throws ReflectionException
      */
     public function createSubscription(array $data): Subscription
     {
@@ -59,6 +59,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Subscription[]
+     * @throws ReflectionException
      */
     public function createSubscriptions(array $data): array
     {
