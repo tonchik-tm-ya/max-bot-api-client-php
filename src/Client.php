@@ -119,7 +119,7 @@ final class Client implements ClientApiInterface
         $errorCode = $data['code'] ?? 'unknown';
         $errorMessage = $data['message'] ?? 'An unknown error occurred.';
 
-        $exception = match ($statusCode) {
+        throw match ($statusCode) {
             401 => new UnauthorizedException($errorMessage, $errorCode, $response),
             403 => new ForbiddenException($errorMessage, $errorCode, $response),
             404 => new NotFoundException($errorMessage, $errorCode, $response),
@@ -127,7 +127,5 @@ final class Client implements ClientApiInterface
             429 => new RateLimitExceededException($errorMessage, $errorCode, $response),
             default => new ClientApiException($errorMessage, $errorCode, $response, $statusCode),
         };
-
-        throw $exception;
     }
 }

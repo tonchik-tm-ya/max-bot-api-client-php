@@ -9,6 +9,8 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Message;
+use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -22,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Result::class)]
 #[UsesClass(Subscription::class)]
 #[UsesClass(ArrayOf::class)]
+#[UsesClass(Message::class)]
+#[UsesClass(MessageBody::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -133,5 +137,22 @@ final class ModelFactoryTest extends TestCase
         $this->assertCount(1, $subscriptions);
         $this->assertInstanceOf(Subscription::class, $subscriptions[0]);
         $this->assertSame(UpdateType::MessageCreated, $subscriptions[0]->updateTypes[0]);
+    }
+
+    #[Test]
+    public function createMessage(): void
+    {
+        $rawData = [
+            'body' => [
+                'mid' => 'mid.456.xyz',
+                'seq' => 101,
+                'text' => 'Hello, **world**!',
+            ],
+        ];
+
+        $message = $this->factory->createMessage($rawData);
+
+        $this->assertInstanceOf(Message::class, $message);
+        $this->assertInstanceOf(MessageBody::class, $message->body);
     }
 }

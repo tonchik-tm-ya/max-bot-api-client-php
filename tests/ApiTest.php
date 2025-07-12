@@ -7,9 +7,12 @@ namespace BushlanovDev\MaxMessengerBot\Tests;
 use BushlanovDev\MaxMessengerBot\Api;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
+use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Message;
+use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,6 +28,8 @@ use ReflectionClass;
 #[UsesClass(Client::class)]
 #[UsesClass(BotInfo::class)]
 #[UsesClass(Subscription::class)]
+#[UsesClass(Message::class)]
+#[UsesClass(MessageBody::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -213,5 +218,58 @@ final class ApiTest extends TestCase
 
         $result = $this->api->unsubscribe($url);
         $this->assertSame($expectedResultObject, $result);
+    }
+
+    #[Test]
+    public function sendMessageBuildsCorrectRequestForAllParameters(): void
+    {
+        $chatId = 123456;
+        $text = 'Hello, **world**!';
+        $format = MessageFormat::Markdown;
+        $notify = false;
+        $disableLinkPreview = true;
+
+        $expectedQuery = [
+            'chat_id' => $chatId,
+            'disable_link_preview' => $disableLinkPreview,
+        ];
+
+        $expectedBody = [
+            'text' => $text,
+            'format' => $format->value,
+            'notify' => $notify,
+        ];
+
+        $apiResponse = [
+            'message' => [
+                'body' => ['mid' => 'mid.456.xyz', 'seq' => 101, 'text' => $text],
+                'timestamp' => time(),
+            ]
+        ];
+
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(
+            null,
+            $chatId,
+            $text,
+            $format,
+            $notify,
+            $disableLinkPreview,
+        );
+
+        $this->assertSame($expectedMessageObject, $result);
     }
 }

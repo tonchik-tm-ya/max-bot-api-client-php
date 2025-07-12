@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use ReflectionException;
@@ -20,6 +21,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Result
+     *
      * @throws ReflectionException
      */
     public function createResult(array $data): Result
@@ -33,6 +35,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return BotInfo
+     *
      * @throws ReflectionException
      */
     public function createBotInfo(array $data): BotInfo
@@ -46,6 +49,7 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Subscription
+     *
      * @throws ReflectionException
      */
     public function createSubscription(array $data): Subscription
@@ -66,5 +70,19 @@ class ModelFactory
         return isset($data['subscriptions']) && is_array($data['subscriptions'])
             ? array_map([$this, 'createSubscription'], $data['subscriptions'])
             : [];
+    }
+
+    /**
+     * Message.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return Message
+     *
+     * @throws ReflectionException
+     */
+    public function createMessage(array $data): Message
+    {
+        return Message::fromArray($data);
     }
 }

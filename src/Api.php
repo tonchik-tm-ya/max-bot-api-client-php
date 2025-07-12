@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot;
 
+use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use InvalidArgumentException;
@@ -28,6 +30,7 @@ class Api
 
     private const string ACTION_ME = '/me';
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
+    private const string ACTION_MESSAGES = '/messages';
 
     private readonly ClientApiInterface $client;
 
@@ -144,5 +147,51 @@ class Api
                 compact('url'),
             )
         );
+    }
+
+    /**
+     * Sends a message to a chat.
+     *
+     * @param int|null $userId Fill this parameter if you want to send message to user.
+     * @param int|null $chatId Fill this if you send message to chat.
+     * @param string|null $text Message text.
+     * @param bool $notify If false, chat participants would not be notified.
+     * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
+     *
+     * @return Message
+     *
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws ReflectionException
+     */
+    public function sendMessage(
+        ?int $userId = null,
+        ?int $chatId = null,
+        ?string $text = null,
+        ?MessageFormat $format = null,
+        bool $notify = true,
+        bool $disableLinkPreview = false,
+    ): Message {
+        $query = [
+            'user_id' => $userId,
+            'chat_id' => $chatId,
+            'disable_link_preview' => $disableLinkPreview,
+        ];
+
+        $body = [
+            'text' => $text,
+            'format' => $format?->value,
+            'notify' => $notify,
+        ];
+
+        $response = $this->client->request(
+            self::METHOD_POST,
+            self::ACTION_MESSAGES,
+            array_filter($query, fn($item) => null !== $item),
+            array_filter($body, fn($item) => null !== $item),
+        );
+
+        return $this->modelFactory->createMessage($response['message']);
     }
 }
