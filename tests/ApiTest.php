@@ -13,6 +13,7 @@ use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
+use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -30,6 +31,7 @@ use ReflectionClass;
 #[UsesClass(Subscription::class)]
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
+#[UsesClass(Recipient::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -242,9 +244,10 @@ final class ApiTest extends TestCase
 
         $apiResponse = [
             'message' => [
-                'body' => ['mid' => 'mid.456.xyz', 'seq' => 101, 'text' => $text],
                 'timestamp' => time(),
-            ]
+                'body' => ['mid' => 'mid.456.xyz', 'seq' => 101, 'text' => $text],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => 123, 'chat_id' => null],
+            ],
         ];
 
         $expectedMessageObject = Message::fromArray($apiResponse['message']);

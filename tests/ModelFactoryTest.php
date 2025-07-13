@@ -11,6 +11,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
+use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(ArrayOf::class)]
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
+#[UsesClass(Recipient::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -143,10 +145,16 @@ final class ModelFactoryTest extends TestCase
     public function createMessage(): void
     {
         $rawData = [
+            'timestamp' => time(),
             'body' => [
                 'mid' => 'mid.456.xyz',
                 'seq' => 101,
                 'text' => 'Hello, **world**!',
+            ],
+            'recipient' => [
+                'chat_type' => 'dialog',
+                'user_id' => 123,
+                'chat_id' => null,
             ],
         ];
 
@@ -154,5 +162,6 @@ final class ModelFactoryTest extends TestCase
 
         $this->assertInstanceOf(Message::class, $message);
         $this->assertInstanceOf(MessageBody::class, $message->body);
+        $this->assertInstanceOf(Recipient::class, $message->recipient);
     }
 }
