@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class ResultTest extends TestCase
 {
     #[Test]
-    public function canBeCreatedFromArray(): void
+    public function canBeCreatedFromArrayWithNullMessage(): void
     {
         $data = [
             'success' => true,
@@ -32,7 +32,7 @@ final class ResultTest extends TestCase
     }
 
     #[Test]
-    public function canBeCreatedFromArrayWithNullMessage(): void
+    public function canBeCreatedFromArray(): void
     {
         $data = [
             'success' => false,

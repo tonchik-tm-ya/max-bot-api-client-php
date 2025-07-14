@@ -15,6 +15,7 @@ use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
+use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -32,6 +33,7 @@ use ReflectionClass;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
+#[UsesClass(Sender::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -247,6 +249,15 @@ final class ApiTest extends TestCase
                 'timestamp' => time(),
                 'body' => ['mid' => 'mid.456.xyz', 'seq' => 101, 'text' => $text],
                 'recipient' => ['chat_type' => 'dialog', 'user_id' => 123, 'chat_id' => null],
+                'sender' => [
+                    'user_id' => 123,
+                    'first_name' => 'John',
+                    'last_name' => 'Doe',
+                    'username' => 'johndoe',
+                    'is_bot' => false,
+                    'last_activity_time' => 1678886400000,
+                ],
+                'url' => 'https://max.ru/message/123',
             ],
         ];
 

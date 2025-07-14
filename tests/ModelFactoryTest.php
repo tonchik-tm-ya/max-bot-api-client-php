@@ -13,6 +13,7 @@ use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
+use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
+#[UsesClass(Sender::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -156,6 +158,15 @@ final class ModelFactoryTest extends TestCase
                 'user_id' => 123,
                 'chat_id' => null,
             ],
+            'sender' =>[
+                'user_id' => 123,
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'username' => 'johndoe',
+                'is_bot' => false,
+                'last_activity_time' => 1678886400000,
+            ],
+            'url' => 'https://max.ru/message/123',
         ];
 
         $message = $this->factory->createMessage($rawData);
@@ -163,5 +174,6 @@ final class ModelFactoryTest extends TestCase
         $this->assertInstanceOf(Message::class, $message);
         $this->assertInstanceOf(MessageBody::class, $message->body);
         $this->assertInstanceOf(Recipient::class, $message->recipient);
+        $this->assertInstanceOf(Sender::class, $message->sender);
     }
 }

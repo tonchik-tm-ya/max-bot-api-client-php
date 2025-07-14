@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Recipient::class)]
-class RecipientTest extends TestCase
+final class RecipientTest extends TestCase
 {
     #[Test]
     public function canBeCreatedFromArray(): void
