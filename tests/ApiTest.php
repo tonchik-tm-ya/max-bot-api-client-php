@@ -7,9 +7,14 @@ namespace BushlanovDev\MaxMessengerBot\Tests;
 use BushlanovDev\MaxMessengerBot\Api;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
+use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
+use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
@@ -34,6 +39,9 @@ use ReflectionClass;
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
 #[UsesClass(Sender::class)]
+#[UsesClass(CallbackButton::class)]
+#[UsesClass(InlineKeyboardPayload::class)]
+#[UsesClass(InlineKeyboardAttachmentRequest::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -279,9 +287,82 @@ final class ApiTest extends TestCase
             null,
             $chatId,
             $text,
+            null,
             $format,
             $notify,
             $disableLinkPreview,
+        );
+
+        $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function sendMessageWithAttachmentsBuildsCorrectRequest(): void
+    {
+        $chatId = 123456;
+        $text = 'Test message with a keyboard';
+        $disableLinkPreview = true;
+        $button = new CallbackButton('Press Me', 'payload_123');
+        $keyboard = new InlineKeyboardAttachmentRequest([[$button]]);
+
+        $expectedAttachmentsJson = [
+            [
+                'type' => AttachmentType::InlineKeyboard->value,
+                'payload' => [
+                    'buttons' => [
+                        [
+                            [
+                                'type' => ButtonType::Callback->value,
+                                'text' => 'Press Me',
+                                'payload' => 'payload_123',
+                                'intent' => null,
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $expectedBody = [
+            'text' => $text,
+            'attachments' => $expectedAttachmentsJson,
+            'notify' => true,
+        ];
+
+        $expectedQuery = ['chat_id' => $chatId, 'disable_link_preview' => $disableLinkPreview];
+
+        $apiResponse = [
+            'message' => [
+                'timestamp' => time(),
+                'body' => ['mid' => 'mid.test.123', 'seq' => 1, 'text' => $text],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => 123, 'chat_id' => null],
+            ]
+        ];
+
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                'POST',
+                '/messages',
+                $expectedQuery,
+                $expectedBody,
+            )
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(
+            chatId: $chatId,
+            text: $text,
+            attachments: [$keyboard],
+            disableLinkPreview: $disableLinkPreview,
         );
 
         $this->assertSame($expectedMessageObject, $result);

@@ -9,6 +9,8 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
+use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -155,20 +157,20 @@ class Api
      * @param int|null $userId Fill this parameter if you want to send message to user.
      * @param int|null $chatId Fill this if you send message to chat.
      * @param string|null $text Message text.
+     * @param AbstractAttachmentRequest[]|null $attachments Message attachments.
+     * @param MessageFormat|null $format
      * @param bool $notify If false, chat participants would not be notified.
      * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
      *
      * @return Message
      *
-     * @throws ClientApiException
-     * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
      */
     public function sendMessage(
         ?int $userId = null,
         ?int $chatId = null,
         ?string $text = null,
+        ?array $attachments = null,
         ?MessageFormat $format = null,
         bool $notify = true,
         bool $disableLinkPreview = false,
@@ -183,6 +185,10 @@ class Api
             'text' => $text,
             'format' => $format?->value,
             'notify' => $notify,
+            'attachments' => $attachments !== null ? array_map(
+                fn(AbstractModel $attachment) => $attachment->toArray(),
+                $attachments,
+            ) : null,
         ];
 
         $response = $this->client->request(
