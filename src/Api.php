@@ -65,7 +65,6 @@ class Api
      * Information about the current bot, identified by an access token.
      *
      * @return BotInfo
-     *
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
@@ -82,7 +81,6 @@ class Api
      * List of all active webhook subscriptions.
      *
      * @return Subscription[]
-     *
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
@@ -103,7 +101,6 @@ class Api
      * @param UpdateType[]|null $updateTypes List of update types.
      *
      * @return Result
-     *
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
@@ -134,7 +131,6 @@ class Api
      * @param string $url URL webhook.
      *
      * @return Result
-     *
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
@@ -163,7 +159,6 @@ class Api
      * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
      *
      * @return Message
-     *
      * @throws ReflectionException
      */
     public function sendMessage(

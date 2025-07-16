@@ -21,7 +21,6 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Result
-     *
      * @throws ReflectionException
      */
     public function createResult(array $data): Result
@@ -35,7 +34,6 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return BotInfo
-     *
      * @throws ReflectionException
      */
     public function createBotInfo(array $data): BotInfo
@@ -49,7 +47,6 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Subscription
-     *
      * @throws ReflectionException
      */
     public function createSubscription(array $data): Subscription
@@ -78,7 +75,6 @@ class ModelFactory
      * @param array<string, mixed> $data
      *
      * @return Message
-     *
      * @throws ReflectionException
      */
     public function createMessage(array $data): Message

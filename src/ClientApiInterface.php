@@ -19,7 +19,6 @@ interface ClientApiInterface
      * @param array<string, mixed> $body The request body.
      *
      * @return array<string, mixed> The decoded JSON response as an associative array.
-     *
      * @throws ClientApiException for API-level errors (4xx, 5xx).
      * @throws NetworkException for network-related issues.
      * @throws SerializationException for JSON encoding/decoding failures.
