@@ -7,6 +7,9 @@ namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons;
 use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\Intent;
 
+/**
+ * Sends a notification with payload to a bot (via WebHook or long polling).
+ */
 final readonly class CallbackButton extends AbstractButton
 {
     public string $payload;

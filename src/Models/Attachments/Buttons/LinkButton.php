@@ -6,6 +6,9 @@ namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons;
 
 use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 
+/**
+ * Makes a user to follow a link.
+ */
 final readonly class LinkButton extends AbstractButton
 {
     public string $url;

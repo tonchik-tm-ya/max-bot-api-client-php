@@ -26,6 +26,9 @@ use ReflectionException;
  */
 class Api
 {
+    private const string API_BASE_URL = 'https://botapi.max.ru';
+    public const string API_VERSION = '0.0.6';
+
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
     private const string METHOD_DELETE = 'DELETE';
@@ -57,6 +60,8 @@ class Api
             new \GuzzleHttp\Client(),
             new \GuzzleHttp\Psr7\HttpFactory(),
             new \GuzzleHttp\Psr7\HttpFactory(),
+            self::API_BASE_URL,
+            self::API_VERSION,
         );
         $this->modelFactory = $modelFactory ?? new ModelFactory();
     }

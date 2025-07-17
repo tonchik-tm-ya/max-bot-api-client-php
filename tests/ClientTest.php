@@ -74,6 +74,7 @@ final class ClientTest extends TestCase
             $this->httpClientMock,
             $this->requestFactoryMock,
             $this->streamFactoryMock,
+            self::API_BASE_URL,
             self::API_VERSION,
         );
     }
@@ -84,7 +85,7 @@ final class ClientTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Access token cannot be empty.');
 
-        new Client('', $this->httpClientMock, $this->requestFactoryMock, $this->streamFactoryMock);
+        new Client('', $this->httpClientMock, $this->requestFactoryMock, $this->streamFactoryMock, '', '');
     }
 
     #[Test]

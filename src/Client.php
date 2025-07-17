@@ -27,16 +27,13 @@ use Psr\Http\Message\StreamFactoryInterface;
  */
 final class Client implements ClientApiInterface
 {
-    private const string API_BASE_URL = 'https://botapi.max.ru';
-
-    private const string DEFAULT_API_VERSION = '0.0.6';
-
     /**
      * @param string $accessToken Your bot's access token from @MasterBot.
      * @param ClientInterface $httpClient A PSR-18 compatible HTTP client (e.g., Guzzle).
      * @param RequestFactoryInterface $requestFactory A PSR-17 factory for creating requests.
      * @param StreamFactoryInterface $streamFactory A PSR-17 factory for creating request body streams.
-     * @param string $apiVersion The API version to use for requests.
+     * @param string $baseUrl The base URL for API requests.
+     * @param string|null $apiVersion The API version to use for requests.
      *
      * @throws InvalidArgumentException
      */
@@ -45,7 +42,8 @@ final class Client implements ClientApiInterface
         private readonly ClientInterface $httpClient,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
-        private readonly string $apiVersion = self::DEFAULT_API_VERSION,
+        private readonly string $baseUrl,
+        private readonly ?string $apiVersion = null,
     ) {
         if (empty($accessToken)) {
             throw new InvalidArgumentException('Access token cannot be empty.');
@@ -58,9 +56,11 @@ final class Client implements ClientApiInterface
     public function request(string $method, string $uri, array $queryParams = [], array $body = []): array
     {
         $queryParams['access_token'] = $this->accessToken;
-        $queryParams['v'] = $this->apiVersion;
+        if (!empty($this->apiVersion)) {
+            $queryParams['v'] = $this->apiVersion;
+        }
 
-        $fullUrl = self::API_BASE_URL . $uri . '?' . http_build_query($queryParams);
+        $fullUrl = $this->baseUrl . $uri . '?' . http_build_query($queryParams);
         $request = $this->requestFactory->createRequest($method, $fullUrl);
 
         if (!empty($body)) {
