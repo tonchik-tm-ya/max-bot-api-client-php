@@ -13,6 +13,7 @@ use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
+use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use InvalidArgumentException;
@@ -159,7 +160,8 @@ class Api
      * @param int|null $chatId Fill this if you send message to chat.
      * @param string|null $text Message text.
      * @param AbstractAttachmentRequest[]|null $attachments Message attachments.
-     * @param MessageFormat|null $format
+     * @param MessageFormat|null $format Message format.
+     * @param MessageLink|null $link Link to message.
      * @param bool $notify If false, chat participants would not be notified.
      * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
      *
@@ -172,6 +174,7 @@ class Api
         ?string $text = null,
         ?array $attachments = null,
         ?MessageFormat $format = null,
+        ?MessageLink $link = null,
         bool $notify = true,
         bool $disableLinkPreview = false,
     ): Message {
@@ -185,6 +188,7 @@ class Api
             'text' => $text,
             'format' => $format?->value,
             'notify' => $notify,
+            'link' => $link,
             'attachments' => $attachments !== null ? array_map(
                 fn(AbstractModel $attachment) => $attachment->toArray(),
                 $attachments,

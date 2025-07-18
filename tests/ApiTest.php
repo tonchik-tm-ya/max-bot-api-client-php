@@ -289,6 +289,7 @@ final class ApiTest extends TestCase
             $text,
             null,
             $format,
+            null,
             $notify,
             $disableLinkPreview,
         );
