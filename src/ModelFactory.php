@@ -8,6 +8,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use ReflectionException;
 
 /**
@@ -80,5 +81,18 @@ class ModelFactory
     public function createMessage(array $data): Message
     {
         return Message::fromArray($data);
+    }
+
+    /**
+     * Endpoint you should upload to your binaries.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return UploadEndpoint
+     * @throws ReflectionException
+     */
+    public function createUploadEndpoint(array $data): UploadEndpoint
+    {
+        return UploadEndpoint::fromArray($data);
     }
 }

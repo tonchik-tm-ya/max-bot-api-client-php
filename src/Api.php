@@ -6,18 +6,23 @@ namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
+use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use InvalidArgumentException;
+use LogicException;
 use ReflectionException;
+use RuntimeException;
 
 /**
  * The main entry point for interacting with the Max Bot API.
@@ -37,6 +42,7 @@ class Api
     private const string ACTION_ME = '/me';
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
     private const string ACTION_MESSAGES = '/messages';
+    private const string ACTION_UPLOADS = '/uploads';
 
     private readonly ClientApiInterface $client;
 
@@ -203,5 +209,72 @@ class Api
         );
 
         return $this->modelFactory->createMessage($response['message']);
+    }
+
+    /**
+     * Returns the URL for the subsequent file upload.
+     *
+     * @param UploadType $type Uploaded file type.
+     *
+     * @return UploadEndpoint Endpoint you should upload to your binaries.
+     * @throws ReflectionException
+     */
+    public function getUploadUrl(UploadType $type): UploadEndpoint
+    {
+        return $this->modelFactory->createUploadEndpoint(
+            $this->client->request(
+                self::METHOD_POST,
+                self::ACTION_UPLOADS,
+                ['type' => $type->value],
+            )
+        );
+    }
+
+    /**
+     * A simplified method for uploading a file and getting the resulting attachment object.
+     *
+     * @param UploadType $type Uploaded file type.
+     * @param string $filePath Path to the file on the local disk.
+     *
+     * @return AbstractAttachmentRequest
+     * @throws ReflectionException
+     * @throws SerializationException
+     * @throws InvalidArgumentException
+     * @throws RuntimeException
+     * @throws LogicException
+     * @throws NetworkException
+     * @throws ClientApiException
+     */
+    public function uploadAttachment(UploadType $type, string $filePath): AbstractAttachmentRequest
+    {
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            throw new InvalidArgumentException("File not found or not readable: $filePath");
+        }
+
+        $fileHandle = fopen($filePath, 'r');
+        if ($fileHandle === false) {
+            throw new RuntimeException("Could not open file for reading: $filePath");
+        }
+
+        $uploadEndpoint = $this->getUploadUrl($type);
+
+        $uploadResult = $this->client->upload(
+            $uploadEndpoint->url,
+            $fileHandle,
+            basename($filePath),
+        );
+
+        fclose($fileHandle);
+
+        if (!isset($uploadResult['token'])) {
+            throw new SerializationException('Could not find "token" in upload server response.');
+        }
+
+        return match ($type) {
+            UploadType::Image => PhotoAttachmentRequest::fromToken($uploadResult['token']),
+            default => throw new LogicException(
+                "Attachment creation for type '$type->value' is not yet implemented."
+            ),
+        };
     }
 }

@@ -24,4 +24,18 @@ interface ClientApiInterface
      * @throws SerializationException for JSON encoding/decoding failures.
      */
     public function request(string $method, string $uri, array $queryParams = [], array $body = []): array;
+
+    /**
+     * Performs a file download at the specified URL.
+     *
+     * @param string $uri URL received from the download API.
+     * @param resource|string $fileContents File content (stream resource or string).
+     * @param string $fileName The name of the file that will be sent to the server.
+     *
+     * @return array<string, mixed>
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     */
+    public function upload(string $uri, mixed $fileContents, string $fileName): array;
 }

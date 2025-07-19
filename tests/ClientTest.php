@@ -13,6 +13,7 @@ use BushlanovDev\MaxMessengerBot\Exceptions\NotFoundException;
 use BushlanovDev\MaxMessengerBot\Exceptions\RateLimitExceededException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Exceptions\UnauthorizedException;
+use GuzzleHttp\Psr7\HttpFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -37,7 +38,7 @@ final class ClientTest extends TestCase
 
     private MockObject&ClientInterface $httpClientMock;
     private MockObject&RequestFactoryInterface $requestFactoryMock;
-    private MockObject&StreamFactoryInterface $streamFactoryMock;
+    private StreamFactoryInterface $streamFactory;
     private MockObject&RequestInterface $requestMock;
     private MockObject&ResponseInterface $responseMock;
     private MockObject&StreamInterface $streamMock;
@@ -56,7 +57,7 @@ final class ClientTest extends TestCase
         // Create mocks for all PSR interfaces
         $this->httpClientMock = $this->createMock(ClientInterface::class);
         $this->requestFactoryMock = $this->createMock(RequestFactoryInterface::class);
-        $this->streamFactoryMock = $this->createMock(StreamFactoryInterface::class);
+        $this->streamFactory = new HttpFactory();
         $this->requestMock = $this->createMock(RequestInterface::class);
         $this->responseMock = $this->createMock(ResponseInterface::class);
         $this->streamMock = $this->createMock(StreamInterface::class);
@@ -65,15 +66,13 @@ final class ClientTest extends TestCase
         $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
         $this->responseMock->method('getBody')->willReturn($this->streamMock);
         $this->httpClientMock->method('sendRequest')->willReturn($this->responseMock);
-        $this->requestMock->method('withBody')->willReturn($this->requestMock);
         $this->requestMock->method('withHeader')->willReturn($this->requestMock);
 
-        // Instantiate the System Under Test (SUT)
         $this->client = new Client(
             self::FAKE_TOKEN,
             $this->httpClientMock,
             $this->requestFactoryMock,
-            $this->streamFactoryMock,
+            $this->streamFactory,
             self::API_BASE_URL,
             self::API_VERSION,
         );
@@ -85,7 +84,7 @@ final class ClientTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Access token cannot be empty.');
 
-        new Client('', $this->httpClientMock, $this->requestFactoryMock, $this->streamFactoryMock, '', '');
+        new Client('', $this->httpClientMock, $this->requestFactoryMock, $this->streamFactory, '', '');
     }
 
     #[Test]
@@ -134,7 +133,6 @@ final class ClientTest extends TestCase
             ],
         ];
         $responsePayload = ['success' => true];
-
         $expectedUrl = self::API_BASE_URL . $uri . '?' . http_build_query([
                 'access_token' => self::FAKE_TOKEN,
                 'v' => self::API_VERSION
@@ -146,16 +144,13 @@ final class ClientTest extends TestCase
             ->with('POST', $expectedUrl)
             ->willReturn($this->requestMock);
 
-        $this->streamFactoryMock
-            ->expects($this->once())
-            ->method('createStream')
-            ->with(json_encode($requestBody))
-            ->willReturn($this->streamMock);
-
         $this->requestMock
             ->expects($this->once())
             ->method('withBody')
-            ->with($this->streamMock)
+            ->with($this->callback(function (StreamInterface $stream) use ($requestBody) {
+                $this->assertSame(json_encode($requestBody), $stream->getContents());
+                return true;
+            }))
             ->willReturn($this->requestMock);
 
         $this->requestMock
@@ -272,5 +267,44 @@ final class ClientTest extends TestCase
             $this->assertSame($this->responseMock, $e->response);
             throw $e; // Re-throw for PHPUnit to catch the expected exception type
         }
+    }
+
+    #[Test]
+    public function uploadMethodSendsCorrectMultipartRequest(): void
+    {
+        $uploadUrl = 'https://upload.server/path';
+        $fileContents = 'fake-image-binary-data';
+        $fileName = 'test.jpg';
+        $responsePayload = ['token' => 'upload_successful_token'];
+
+        $this->requestMock
+            ->expects($this->once())
+            ->method('withBody')
+            ->with($this->callback(function (StreamInterface $stream) use ($fileContents, $fileName) {
+                $stream->rewind();
+                $body = $stream->getContents();
+                $this->assertStringContainsString('Content-Disposition: form-data; name="data"; filename="' . $fileName . '"', $body);
+                $this->assertStringContainsString($fileContents, $body);
+                return true;
+            }))
+            ->willReturn($this->requestMock);
+
+        $this->requestMock
+            ->expects($this->once())
+            ->method('withHeader')
+            ->with($this->stringStartsWith('Content-Type'), $this->stringStartsWith('multipart/form-data'))
+            ->willReturn($this->requestMock);
+
+        $this->requestFactoryMock
+            ->expects($this->once())
+            ->method('createRequest')
+            ->with('POST', $uploadUrl)
+            ->willReturn($this->requestMock);
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
+
+        $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
+        $this->assertSame($responsePayload, $result);
     }
 }

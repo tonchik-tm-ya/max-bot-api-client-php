@@ -11,10 +11,14 @@ use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
 use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
+use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
@@ -22,6 +26,8 @@ use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -42,6 +48,10 @@ use ReflectionClass;
 #[UsesClass(CallbackButton::class)]
 #[UsesClass(InlineKeyboardPayload::class)]
 #[UsesClass(InlineKeyboardAttachmentRequest::class)]
+#[UsesClass(PhotoToken::class)]
+#[UsesClass(PhotoAttachmentRequest::class)]
+#[UsesClass(PhotoAttachmentPayload::class)]
+#[UsesClass(UploadEndpoint::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -367,5 +377,77 @@ final class ApiTest extends TestCase
         );
 
         $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function uploadAttachmentSuccessfullyUploadsImageAndReturnsAttachment(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($filePath, 'fake-image-content');
+
+        $uploadType = UploadType::Image;
+        $uploadUrl = 'https://upload.server/gohere';
+        $uploadToken = 'FINAL_TOKEN_123';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $uploadResponse = ['token' => $uploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl);
+        $expectedAttachment = PhotoAttachmentRequest::fromToken($uploadToken);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($uploadResponse);
+
+        $result = $this->api->uploadAttachment($uploadType, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentForMultiplePhotosReturnsCorrectAttachment(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_');
+        file_put_contents($filePath, 'content');
+
+        $getUploadUrlResponse = ['url' => 'http://upload.server'];
+        $expectedEndpoint = new UploadEndpoint('http://upload.server');
+
+        $uploadResponse = ['token' => 'token'];
+
+        $expectedAttachment = PhotoAttachmentRequest::fromToken('token');
+
+        $this->clientMock->method('request')->willReturn($getUploadUrlResponse);
+        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn($expectedEndpoint);
+        $this->clientMock->method('upload')->willReturn($uploadResponse);
+
+        $result = $this->api->uploadAttachment(UploadType::Image, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentThrowsExceptionForNonExistentFile(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/File not found or not readable/');
+        $this->api->uploadAttachment(UploadType::Image, '/path/to/non/existent/file.jpg');
     }
 }

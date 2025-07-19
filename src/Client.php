@@ -101,6 +101,48 @@ final class Client implements ClientApiInterface
     }
 
     /**
+     * @inheritDoc
+     */
+    public function upload(string $uri, mixed $fileContents, string $fileName): array
+    {
+        $boundary = '--------------------------' . microtime(true);
+        $bodyStream = $this->streamFactory->createStream();
+
+        $bodyStream->write("--$boundary\r\n");
+        $bodyStream->write("Content-Disposition: form-data; name=\"data\"; filename=\"{$fileName}\"\r\n");
+        $bodyStream->write("Content-Type: application/octet-stream\r\n\r\n");
+
+        if (is_resource($fileContents)) {
+            $bodyStream->write((string)stream_get_contents($fileContents));
+        } else {
+            $bodyStream->write((string)$fileContents);
+        }
+        $bodyStream->write("\r\n");
+        $bodyStream->write("--$boundary--\r\n");
+
+        $request = $this->requestFactory
+            ->createRequest('POST', $uri)
+            ->withHeader('Content-Type', 'multipart/form-data; boundary=' . $boundary)
+            ->withBody($bodyStream);
+
+        try {
+            $response = $this->httpClient->sendRequest($request);
+        } catch (ClientExceptionInterface $e) {
+            throw new NetworkException($e->getMessage(), $e->getCode(), $e);
+        }
+
+        $this->handleErrorResponse($response);
+
+        $responseBody = (string)$response->getBody();
+
+        try {
+            return json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new SerializationException('Failed to decode upload server response JSON.', 0, $e);
+        }
+    }
+
+    /**
      * Checks the response for an error status code and throws a corresponding typed exception.
      *
      * @throws ClientApiException
