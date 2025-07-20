@@ -14,6 +14,7 @@ use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -43,6 +44,7 @@ class Api
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
     private const string ACTION_MESSAGES = '/messages';
     private const string ACTION_UPLOADS = '/uploads';
+    private const string ACTION_CHATS = '/chats';
 
     private readonly ClientApiInterface $client;
 
@@ -237,13 +239,13 @@ class Api
      * @param string $filePath Path to the file on the local disk.
      *
      * @return AbstractAttachmentRequest
-     * @throws ReflectionException
-     * @throws SerializationException
      * @throws InvalidArgumentException
      * @throws RuntimeException
      * @throws LogicException
-     * @throws NetworkException
      * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws ReflectionException
      */
     public function uploadAttachment(UploadType $type, string $filePath): AbstractAttachmentRequest
     {
@@ -276,5 +278,23 @@ class Api
                 "Attachment creation for type '$type->value' is not yet implemented."
             ),
         };
+    }
+
+    /**
+     * Returns info about chat.
+     *
+     * @param int $chatId Requested chat identifier.
+     *
+     * @return Chat
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws ReflectionException
+     */
+    public function getChat(int $chatId): Chat
+    {
+        return $this->modelFactory->createChat(
+            $this->client->request(self::METHOD_GET, self::ACTION_CHATS . '/' . $chatId)
+        );
     }
 }

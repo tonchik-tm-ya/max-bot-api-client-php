@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
@@ -94,5 +95,18 @@ class ModelFactory
     public function createUploadEndpoint(array $data): UploadEndpoint
     {
         return UploadEndpoint::fromArray($data);
+    }
+
+    /**
+     * Chat information.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return Chat
+     * @throws ReflectionException
+     */
+    public function createChat(array $data): Chat
+    {
+        return Chat::fromArray($data);
     }
 }

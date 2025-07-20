@@ -20,6 +20,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
@@ -52,6 +53,7 @@ use ReflectionClass;
 #[UsesClass(PhotoAttachmentRequest::class)]
 #[UsesClass(PhotoAttachmentPayload::class)]
 #[UsesClass(UploadEndpoint::class)]
+#[UsesClass(Chat::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -449,5 +451,46 @@ final class ApiTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/File not found or not readable/');
         $this->api->uploadAttachment(UploadType::Image, '/path/to/non/existent/file.jpg');
+    }
+
+    #[Test]
+    public function getChatCallsClientAndFactoryCorrectly(): void
+    {
+        $chatId = 100123456789;
+        $rawResponseData = [
+            'chat_id' => $chatId,
+            'type' => 'chat',
+            'status' => 'active',
+            'last_event_time' => 1678886400000,
+            'participants_count' => 50,
+            'is_public' => false,
+            'title' => 'Test Chat Title',
+            'icon' => null,
+            'owner_id' => null,
+            'link' => null,
+            'description' => null,
+            'dialog_with_user' => null,
+            'messages_count' => null,
+            'chat_message_id' => null,
+            'pinned_message' => null,
+        ];
+
+        $expectedChatObject = Chat::fromArray($rawResponseData);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/chats/' . $chatId)
+            ->willReturn($rawResponseData);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChat')
+            ->with($rawResponseData)
+            ->willReturn($expectedChatObject);
+
+        $result = $this->api->getChat($chatId);
+
+        $this->assertSame($expectedChatObject, $result);
     }
 }
