@@ -27,6 +27,7 @@ use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -54,6 +55,7 @@ use ReflectionClass;
 #[UsesClass(PhotoAttachmentPayload::class)]
 #[UsesClass(UploadEndpoint::class)]
 #[UsesClass(Chat::class)]
+#[UsesClass(UpdateList::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -492,5 +494,56 @@ final class ApiTest extends TestCase
         $result = $this->api->getChat($chatId);
 
         $this->assertSame($expectedChatObject, $result);
+    }
+
+    #[Test]
+    public function getUpdatesCallsClientWithCorrectParameters(): void
+    {
+        $limit = 50;
+        $timeout = 60;
+        $marker = 12345;
+        $types = [UpdateType::MessageCreated, UpdateType::BotStarted];
+
+        $expectedQuery = [
+            'limit' => $limit,
+            'timeout' => $timeout,
+            'marker' => $marker,
+            'types' => 'message_created,bot_started',
+        ];
+
+        $rawResponse = ['updates' => [], 'marker' => $marker + 1];
+        $expectedUpdateList = new UpdateList([], $marker + 1);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/updates', $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUpdateList')
+            ->with($rawResponse)
+            ->willReturn($expectedUpdateList);
+
+        $result = $this->api->getUpdates($limit, $timeout, $marker, $types);
+
+        $this->assertSame($expectedUpdateList, $result);
+    }
+
+    #[Test]
+    public function getUpdatesHandlesNullParameters(): void
+    {
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/updates', [])
+            ->willReturn(['updates' => [], 'marker' => null]);
+
+        $this->modelFactoryMock
+            ->method('createUpdateList')
+            ->willReturn(new UpdateList([], null));
+
+        $this->api->getUpdates();
     }
 }

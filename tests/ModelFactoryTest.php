@@ -9,12 +9,19 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\Image;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UpdateList;
+use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -30,6 +37,13 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
 #[UsesClass(Sender::class)]
+#[UsesClass(UpdateList::class)]
+#[UsesClass(BotStartedUpdate::class)]
+#[UsesClass(MessageCreatedUpdate::class)]
+#[UsesClass(User::class)]
+#[UsesClass(UploadEndpoint::class)]
+#[UsesClass(Chat::class)]
+#[UsesClass(Image::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -158,7 +172,7 @@ final class ModelFactoryTest extends TestCase
                 'user_id' => 123,
                 'chat_id' => null,
             ],
-            'sender' =>[
+            'sender' => [
                 'user_id' => 123,
                 'first_name' => 'John',
                 'last_name' => 'Doe',
@@ -175,5 +189,96 @@ final class ModelFactoryTest extends TestCase
         $this->assertInstanceOf(MessageBody::class, $message->body);
         $this->assertInstanceOf(Recipient::class, $message->recipient);
         $this->assertInstanceOf(Sender::class, $message->sender);
+    }
+
+    #[Test]
+    public function createUploadEndpoint(): void
+    {
+        $rawData = [
+            'url' => 'https://example.com/upload',
+        ];
+
+        $uploadEndpoint = $this->factory->createUploadEndpoint($rawData);
+
+        $this->assertInstanceOf(UploadEndpoint::class, $uploadEndpoint);
+        $this->assertSame('https://example.com/upload', $uploadEndpoint->url);
+        $this->assertNull($uploadEndpoint->token);
+    }
+
+    #[Test]
+    public function createChat(): void
+    {
+        $rawData = [
+            'chat_id' => 123,
+            'type' => 'chat',
+            'status' => 'active',
+            'last_event_time' => 1678886400000,
+            'participants_count' => 50,
+            'is_public' => false,
+            'title' => 'Test Chat',
+            'icon' => [
+                'url' => 'https://example.com/icon.jpg',
+            ],
+            'owner_id' => 123,
+            'link' => 'https://max.ru/chat/123',
+            'description' => 'This is a test chat',
+            'dialog_with_user' => [
+                'user_id' => 456,
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'username' => 'johndoe',
+                'is_bot' => false,
+                'last_activity_time' => 1678886400000,
+            ],
+            'messages_count' => 100,
+            'chat_message_id' => 'mid.123',
+        ];
+
+        $chat = $this->factory->createChat($rawData);
+
+        $this->assertInstanceOf(Chat::class, $chat);
+        $this->assertInstanceOf(Image::class, $chat->icon);
+        $this->assertInstanceOf(User::class, $chat->dialogWithUser);
+    }
+
+    #[Test]
+    public function createUpdateListHandlesDifferentUpdateTypes(): void
+    {
+        $rawData = [
+            'updates' => [
+                [
+                    'update_type' => 'message_created',
+                    'timestamp' => 1,
+                    'message' => [
+                        'timestamp' => 1,
+                        'body' => ['mid' => 'mid.1', 'seq' => 1],
+                        'recipient' => ['chat_type' => 'dialog'],
+                    ],
+                ],
+                [
+                    'update_type' => 'bot_started',
+                    'timestamp' => 2,
+                    'chat_id' => 123,
+                    'user' => [
+                        'user_id' => 123,
+                        'first_name' => 'John',
+                        'is_bot' => false,
+                        'last_activity_time' => 2,
+                    ],
+                    'payload' => 'start_payload',
+                    'user_locale' => 'ru-RU',
+                ],
+            ],
+            'marker' => 12345,
+        ];
+
+        $updateList = $this->factory->createUpdateList($rawData);
+
+        $this->assertInstanceOf(UpdateList::class, $updateList);
+        $this->assertSame(12345, $updateList->marker);
+        $this->assertCount(2, $updateList->updates);
+        $this->assertInstanceOf(MessageCreatedUpdate::class, $updateList->updates[0]);
+        $this->assertInstanceOf(BotStartedUpdate::class, $updateList->updates[1]);
+        $this->assertSame('start_payload', $updateList->updates[1]->payload);
     }
 }

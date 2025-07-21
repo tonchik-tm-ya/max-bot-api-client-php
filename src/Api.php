@@ -19,6 +19,7 @@ use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
+use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use InvalidArgumentException;
 use LogicException;
@@ -45,6 +46,7 @@ class Api
     private const string ACTION_MESSAGES = '/messages';
     private const string ACTION_UPLOADS = '/uploads';
     private const string ACTION_CHATS = '/chats';
+    private const string ACTION_UPDATES = '/updates';
 
     private readonly ClientApiInterface $client;
 
@@ -81,8 +83,8 @@ class Api
      * @return BotInfo
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function getBotInfo(): BotInfo
     {
@@ -97,8 +99,8 @@ class Api
      * @return Subscription[]
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function getSubscriptions(): array
     {
@@ -117,8 +119,8 @@ class Api
      * @return Result
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function subscribe(
         string $url,
@@ -147,8 +149,8 @@ class Api
      * @return Result
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function unsubscribe(string $url): Result
     {
@@ -174,7 +176,10 @@ class Api
      * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
      *
      * @return Message
+     * @throws ClientApiException
+     * @throws NetworkException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function sendMessage(
         ?int $userId = null,
@@ -244,8 +249,8 @@ class Api
      * @throws LogicException
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function uploadAttachment(UploadType $type, string $filePath): AbstractAttachmentRequest
     {
@@ -288,13 +293,50 @@ class Api
      * @return Chat
      * @throws ClientApiException
      * @throws NetworkException
-     * @throws SerializationException
      * @throws ReflectionException
+     * @throws SerializationException
      */
     public function getChat(int $chatId): Chat
     {
         return $this->modelFactory->createChat(
             $this->client->request(self::METHOD_GET, self::ACTION_CHATS . '/' . $chatId)
+        );
+    }
+
+    /**
+     * You can use this method for getting updates in case your bot is not subscribed to WebHook.
+     * The method is based on long polling.
+     *
+     * @param int|null $limit Maximum number of updates to be retrieved (1-1000).
+     * @param int|null $timeout Timeout in seconds for long polling (0-90).
+     * @param int|null $marker Pass `null` to get updates you didn't get yet.
+     * @param UpdateType[]|null $types Comma separated list of update types your bot want to receive.
+     *
+     * @return UpdateList
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getUpdates(
+        ?int $limit = null,
+        ?int $timeout = null,
+        ?int $marker = null,
+        ?array $types = null,
+    ): UpdateList {
+        $query = [
+            'limit' => $limit,
+            'timeout' => $timeout,
+            'marker' => $marker,
+            'types' => $types !== null ? implode(',', array_map(fn($type) => $type->value, $types)) : null,
+        ];
+
+        return $this->modelFactory->createUpdateList(
+            $this->client->request(
+                self::METHOD_GET,
+                self::ACTION_UPDATES,
+                array_filter($query, fn($value) => $value !== null),
+            )
         );
     }
 }
