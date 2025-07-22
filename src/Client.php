@@ -25,7 +25,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  * It handles request signing, error handling, and JSON serialization/deserialization.
  * This class is an abstraction over any PSR-18 compatible HTTP client.
  */
-final class Client implements ClientApiInterface
+final readonly class Client implements ClientApiInterface
 {
     /**
      * @param string $accessToken Your bot's access token from @MasterBot.
@@ -38,12 +38,12 @@ final class Client implements ClientApiInterface
      * @throws InvalidArgumentException
      */
     public function __construct(
-        private readonly string $accessToken,
-        private readonly ClientInterface $httpClient,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
-        private readonly string $baseUrl,
-        private readonly ?string $apiVersion = null,
+        private string $accessToken,
+        private ClientInterface $httpClient,
+        private RequestFactoryInterface $requestFactory,
+        private StreamFactoryInterface $streamFactory,
+        private string $baseUrl,
+        private ?string $apiVersion = null,
     ) {
         if (empty($accessToken)) {
             throw new InvalidArgumentException('Access token cannot be empty.');

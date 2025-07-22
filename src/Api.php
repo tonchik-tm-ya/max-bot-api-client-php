@@ -66,15 +66,41 @@ class Api
         ?ClientApiInterface $client = null,
         ?ModelFactory $modelFactory = null
     ) {
-        $this->client = $client ?? new Client(
-            $accessToken,
-            new \GuzzleHttp\Client(),
-            new \GuzzleHttp\Psr7\HttpFactory(),
-            new \GuzzleHttp\Psr7\HttpFactory(),
-            self::API_BASE_URL,
-            self::API_VERSION,
-        );
+        if ($client === null) {
+            if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
+                throw new LogicException(
+                    'No client was provided and "guzzlehttp/guzzle" is not found. ' .
+                    'Please run "composer require guzzlehttp/guzzle" or create and pass your own implementation of ClientApiInterface.'
+                );
+            }
+
+            $guzzle = new \GuzzleHttp\Client();
+            $httpFactory = new \GuzzleHttp\Psr7\HttpFactory();
+            $client = new Client(
+                $accessToken,
+                $guzzle,
+                $httpFactory,
+                $httpFactory,
+                self::API_BASE_URL,
+                self::API_VERSION,
+            );
+        }
+
+        $this->client = $client;
         $this->modelFactory = $modelFactory ?? new ModelFactory();
+    }
+
+    /**
+     * Creates a WebhookHandler instance, pre-configured with the necessary dependencies.
+     *
+     * @param string|null $secret The secret key for request verification.
+     *        Should be the same one you used when calling the subscribe() method.
+     *
+     * @return WebhookHandler
+     */
+    public function createWebhookHandler(?string $secret = null): WebhookHandler
+    {
+        return new WebhookHandler($this, $this->modelFactory, $secret);
     }
 
     /**
