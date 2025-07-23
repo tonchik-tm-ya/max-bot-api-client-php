@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
-class MessageCreatedUpdateTest extends TestCase
+final class MessageCreatedUpdateTest extends TestCase
 {
     #[Test]
     public function canBeCreatedFromArray(): void

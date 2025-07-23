@@ -137,7 +137,7 @@ class ModelFactory
 
         return new UpdateList(
             $updateObjects,
-            $data['marker'] ?? null,
+            $data['marker'] ? (int)$data['marker'] : null,
         );
     }
 

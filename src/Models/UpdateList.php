@@ -20,4 +20,18 @@ final readonly class UpdateList extends AbstractModel
         public ?int $marker,
     ) {
     }
+
+    /**
+     * Overridden to prevent incorrect usage.
+     * UpdateList contains polymorphic objects and must be created via ModelFactory.
+     *
+     * @param array<string, mixed> $data
+     * @throws \LogicException Always.
+     */
+    public static function fromArray(array $data): static
+    {
+        throw new \LogicException(
+            'Cannot create UpdateList directly from an array. Use ModelFactory::createUpdateList() instead.'
+        );
+    }
 }

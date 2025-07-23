@@ -68,6 +68,7 @@ final class WebhookHandler
      * @param callable(Models\Updates\BotStartedUpdate, Api): void $handler
      *
      * @return $this
+     * @codeCoverageIgnore
      */
     public function onBotStarted(callable $handler): self
     {

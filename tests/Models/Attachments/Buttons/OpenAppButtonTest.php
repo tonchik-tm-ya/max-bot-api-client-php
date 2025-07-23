@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(OpenAppButton::class)]
-class OpenAppButtonTest extends TestCase
+final class OpenAppButtonTest extends TestCase
 {
     #[Test]
     public function toArraySerializesCorrectly(): void

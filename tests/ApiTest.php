@@ -29,6 +29,7 @@ use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use BushlanovDev\MaxMessengerBot\WebhookHandler;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -56,6 +57,7 @@ use ReflectionClass;
 #[UsesClass(UploadEndpoint::class)]
 #[UsesClass(Chat::class)]
 #[UsesClass(UpdateList::class)]
+#[UsesClass(WebhookHandler::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -545,5 +547,25 @@ final class ApiTest extends TestCase
             ->willReturn(new UpdateList([], null));
 
         $this->api->getUpdates();
+    }
+
+    #[Test]
+    public function createWebhookHandlerReturnsInstanceWithProvidedSecret(): void
+    {
+        $secret = 'my-test-secret-key';
+        $webhookHandler = $this->api->createWebhookHandler($secret);
+
+        $this->assertInstanceOf(WebhookHandler::class, $webhookHandler);
+
+        $reflection = new ReflectionClass($webhookHandler);
+
+        $apiProperty = $reflection->getProperty('api');
+        $this->assertSame($this->api, $apiProperty->getValue($webhookHandler));
+
+        $factoryProperty = $reflection->getProperty('modelFactory');
+        $this->assertSame($this->modelFactoryMock, $factoryProperty->getValue($webhookHandler));
+
+        $secretProperty = $reflection->getProperty('secret');
+        $this->assertSame($secret, $secretProperty->getValue($webhookHandler));
     }
 }
