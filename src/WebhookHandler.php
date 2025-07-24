@@ -63,6 +63,57 @@ final class WebhookHandler
     }
 
     /**
+     * A convenient alias for addHandler(UpdateType::MessageCallback, $handler).
+     *
+     * @param callable(Models\Updates\MessageCallbackUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onMessageCallback(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::MessageCallback, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::MessageEdited, $handler).
+     *
+     * @param callable(Models\Updates\MessageEditedUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onMessageEdited(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::MessageEdited, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::MessageRemoved, $handler).
+     *
+     * @param callable(Models\Updates\MessageRemovedUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onMessageRemoved(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::MessageRemoved, $handler);
+    }
+    /**
+     * A convenient alias for addHandler(UpdateType::BotAdded, $handler).
+     *
+     * @param callable(Models\Updates\BotAddedToChatUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onBotAdded(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::BotAdded, $handler);
+    }
+
+    /**
      * A convenient alias for addHandler(UpdateType::BotStarted, $handler).
      *
      * @param callable(Models\Updates\BotStartedUpdate, Api): void $handler
@@ -92,10 +143,12 @@ final class WebhookHandler
     {
         if ($request === null) {
             if (!class_exists(\GuzzleHttp\Psr7\ServerRequest::class)) {
+                // @codeCoverageIgnoreStart
                 throw new \LogicException(
                     'No ServerRequest was provided and "guzzlehttp/psr7" is not found. ' .
                     'Please run "composer require guzzlehttp/psr7" or create and pass your own PSR-7 request object.',
                 );
+                // @codeCoverageIgnoreEnd
             }
             $request = \GuzzleHttp\Psr7\ServerRequest::fromGlobals();
         }

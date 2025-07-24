@@ -68,10 +68,12 @@ class Api
     ) {
         if ($client === null) {
             if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
+                // @codeCoverageIgnoreStart
                 throw new LogicException(
                     'No client was provided and "guzzlehttp/guzzle" is not found. ' .
                     'Please run "composer require guzzlehttp/guzzle" or create and pass your own implementation of ClientApiInterface.'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             $guzzle = new \GuzzleHttp\Client();

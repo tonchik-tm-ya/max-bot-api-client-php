@@ -12,8 +12,12 @@ use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\BotAddedToChatUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCallbackUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageEditedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageRemovedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use LogicException;
 use ReflectionException;
@@ -154,6 +158,10 @@ class ModelFactory
     {
         return match (UpdateType::tryFrom($data['update_type'] ?? '')) {
             UpdateType::MessageCreated => MessageCreatedUpdate::fromArray($data),
+            UpdateType::MessageCallback => MessageCallbackUpdate::fromArray($data),
+            UpdateType::MessageEdited => MessageEditedUpdate::fromArray($data),
+            UpdateType::MessageRemoved => MessageRemovedUpdate::fromArray($data),
+            UpdateType::BotAdded => BotAddedToChatUpdate::fromArray($data),
             UpdateType::BotStarted => BotStartedUpdate::fromArray($data),
             default => throw new LogicException(
                 'Unknown or unsupported update type received: ' . ($data['update_type'] ?? 'none')
