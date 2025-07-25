@@ -3,5 +3,6 @@
 .phpunit.result.cache
 .phpunit.cache
 composer.lock
+clover.xml
 coverage
 vendor
