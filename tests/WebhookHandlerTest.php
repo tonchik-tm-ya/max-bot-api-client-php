@@ -204,4 +204,25 @@ final class WebhookHandlerTest extends TestCase
 
         $this->assertSame($expectedUpdate, $result);
     }
+
+    #[Test]
+    public function getUpdateParsesRequestAndReturnsUpdateObject(): void
+    {
+        $payload = $this->createValidUpdatePayload();
+        $updateData = json_decode($payload, true);
+        $expectedUpdate = $this->createRealUpdateObject($updateData);
+
+        $request = new ServerRequest('POST', '/webhook', [], $payload);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUpdate')
+            ->with($updateData)
+            ->willReturn($expectedUpdate);
+
+        $webhookHandler = new WebhookHandler($this->apiMock, $this->modelFactoryMock);
+        $result = $webhookHandler->getUpdate($request);
+
+        $this->assertSame($expectedUpdate, $result);
+    }
 }

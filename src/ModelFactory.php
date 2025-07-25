@@ -13,11 +13,16 @@ use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotAddedToChatUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\BotRemovedFromChatUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\ChatTitleChangedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCallbackUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageChatCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageEditedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageRemovedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\UserAddedToChatUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\UserRemovedFromChatUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use LogicException;
 use ReflectionException;
@@ -162,7 +167,12 @@ class ModelFactory
             UpdateType::MessageEdited => MessageEditedUpdate::fromArray($data),
             UpdateType::MessageRemoved => MessageRemovedUpdate::fromArray($data),
             UpdateType::BotAdded => BotAddedToChatUpdate::fromArray($data),
+            UpdateType::BotRemoved => BotRemovedFromChatUpdate::fromArray($data),
+            UpdateType::UserAdded => UserAddedToChatUpdate::fromArray($data),
+            UpdateType::UserRemoved => UserRemovedFromChatUpdate::fromArray($data),
             UpdateType::BotStarted => BotStartedUpdate::fromArray($data),
+            UpdateType::ChatTitleChanged => ChatTitleChangedUpdate::fromArray($data),
+            UpdateType::MessageChatCreated => MessageChatCreatedUpdate::fromArray($data),
             default => throw new LogicException(
                 'Unknown or unsupported update type received: ' . ($data['update_type'] ?? 'none')
             ),

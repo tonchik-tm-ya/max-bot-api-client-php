@@ -9,6 +9,7 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
+use BushlanovDev\MaxMessengerBot\Exceptions\SecurityException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
@@ -20,9 +21,11 @@ use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
+use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use InvalidArgumentException;
 use LogicException;
+use Psr\Http\Message\ServerRequestInterface;
 use ReflectionException;
 use RuntimeException;
 
@@ -103,6 +106,146 @@ class Api
     public function createWebhookHandler(?string $secret = null): WebhookHandler
     {
         return new WebhookHandler($this, $this->modelFactory, $secret);
+    }
+
+    /**
+     * Parses an incoming webhook request and returns a single Update object.
+     * This is an alternative to the event-driven WebhookHandler::handle() method,
+     * allowing for manual processing of updates.
+     *
+     * @param string|null $secret The secret key to verify the request signature.
+     * @param ServerRequestInterface|null $request The PSR-7 request object. If null, it's created from globals.
+     *
+     * @return AbstractUpdate The parsed update object (e.g., MessageCreatedUpdate).
+     * @throws \ReflectionException
+     * @throws SecurityException
+     * @throws SerializationException
+     * @throws \LogicException
+     */
+    public function getWebhookUpdate(?string $secret = null, ?ServerRequestInterface $request = null): AbstractUpdate
+    {
+        return $this->createWebhookHandler($secret)->getUpdate($request);
+    }
+
+    /**
+     * A simple way to process a single incoming webhook request using callbacks.
+     * This method creates a WebhookHandler, registers the provided callbacks, and processes the request.
+     *
+     * @param array<string, callable> $handlers An associative array where keys are UpdateType string values
+     *        (e.g., UpdateType::MessageCreated->value) and values are handlers.
+     * @param string|null $secret The secret key for request verification.
+     * @param ServerRequestInterface|null $request The PSR-7 request object.
+     *
+     * @throws SecurityException
+     * @throws SerializationException
+     * @throws ReflectionException
+     * @throws LogicException
+     */
+    public function handleWebhooks(
+        array $handlers,
+        ?string $secret = null,
+        ?ServerRequestInterface $request = null,
+    ): void {
+        $webhookHandler = $this->createWebhookHandler($secret);
+
+        foreach ($handlers as $updateType => $callback) {
+            $updateType = UpdateType::tryFrom($updateType);
+            // @phpstan-ignore-next-line
+            if ($updateType && is_callable($callback)) {
+                $webhookHandler->addHandler($updateType, $callback);
+            }
+        }
+
+        $webhookHandler->handle($request);
+    }
+
+    /**
+     * You can use this method for getting updates in case your bot is not subscribed to WebHook.
+     * The method is based on long polling.
+     *
+     * @param int|null $limit Maximum number of updates to be retrieved (1-1000).
+     * @param int|null $timeout Timeout in seconds for long polling (0-90).
+     * @param int|null $marker Pass `null` to get updates you didn't get yet.
+     * @param UpdateType[]|null $types Comma separated list of update types your bot want to receive.
+     *
+     * @return UpdateList
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getUpdates(
+        ?int $limit = null,
+        ?int $timeout = null,
+        ?int $marker = null,
+        ?array $types = null,
+    ): UpdateList {
+        $query = [
+            'limit' => $limit,
+            'timeout' => $timeout,
+            'marker' => $marker,
+            'types' => $types !== null ? implode(',', array_map(fn($type) => $type->value, $types)) : null,
+        ];
+
+        return $this->modelFactory->createUpdateList(
+            $this->client->request(
+                self::METHOD_GET,
+                self::ACTION_UPDATES,
+                array_filter($query, fn($value) => $value !== null),
+            )
+        );
+    }
+
+    /**
+     * Starts a long-polling loop to process updates using callbacks.
+     * This method will run indefinitely until the script is terminated.
+     *
+     * @param array<string, callable> $handlers An associative array where keys are UpdateType enums
+     *        and values are the corresponding handler functions.
+     * @param int|null $timeout Timeout in seconds for long polling (0-90). Defaults to 90.
+     * @param int|null $marker Pass `null` to get updates you didn't get yet.
+     */
+    public function handleUpdates(array $handlers, ?int $timeout = null, ?int $marker = null): void
+    {
+        // @phpstan-ignore-next-line
+        while (true) {
+            try {
+                $this->processUpdatesBatch($handlers, $timeout, $marker);
+            } catch (NetworkException $e) {
+                error_log("Network error: " . $e->getMessage());
+                sleep(5);
+            } catch (\Exception $e) {
+                error_log("An error occurred: " . $e->getMessage());
+                sleep(1);
+            }
+        }
+    }
+
+    /**
+     * Processes a single batch of updates. This is the core logic used by handleUpdates().
+     * Useful for custom loop implementations or for testing.
+     *
+     * @param array<string, callable> $handlers An associative array of update handlers.
+     * @param int|null $timeout Timeout for the getUpdates call.
+     * @param int|null $marker The marker for which updates to fetch.
+     *
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function processUpdatesBatch(array $handlers, ?int $timeout, ?int &$marker = null): void
+    {
+        $updateList = $this->getUpdates(timeout: $timeout, marker: $marker);
+
+        foreach ($updateList->updates as $update) {
+            $handler = $handlers[$update->updateType->value] ?? null;
+            if ($handler) {
+                $handler($update, $this);
+            }
+        }
+
+        $marker = $updateList->marker;
     }
 
     /**
@@ -328,43 +471,6 @@ class Api
     {
         return $this->modelFactory->createChat(
             $this->client->request(self::METHOD_GET, self::ACTION_CHATS . '/' . $chatId)
-        );
-    }
-
-    /**
-     * You can use this method for getting updates in case your bot is not subscribed to WebHook.
-     * The method is based on long polling.
-     *
-     * @param int|null $limit Maximum number of updates to be retrieved (1-1000).
-     * @param int|null $timeout Timeout in seconds for long polling (0-90).
-     * @param int|null $marker Pass `null` to get updates you didn't get yet.
-     * @param UpdateType[]|null $types Comma separated list of update types your bot want to receive.
-     *
-     * @return UpdateList
-     * @throws ClientApiException
-     * @throws NetworkException
-     * @throws ReflectionException
-     * @throws SerializationException
-     */
-    public function getUpdates(
-        ?int $limit = null,
-        ?int $timeout = null,
-        ?int $marker = null,
-        ?array $types = null,
-    ): UpdateList {
-        $query = [
-            'limit' => $limit,
-            'timeout' => $timeout,
-            'marker' => $marker,
-            'types' => $types !== null ? implode(',', array_map(fn($type) => $type->value, $types)) : null,
-        ];
-
-        return $this->modelFactory->createUpdateList(
-            $this->client->request(
-                self::METHOD_GET,
-                self::ACTION_UPDATES,
-                array_filter($query, fn($value) => $value !== null),
-            )
         );
     }
 }

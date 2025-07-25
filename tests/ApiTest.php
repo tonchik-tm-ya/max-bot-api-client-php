@@ -28,8 +28,13 @@ use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
+use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
+use GuzzleHttp\Psr7\ServerRequest;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -58,6 +63,10 @@ use ReflectionClass;
 #[UsesClass(Chat::class)]
 #[UsesClass(UpdateList::class)]
 #[UsesClass(WebhookHandler::class)]
+#[UsesClass(User::class)]
+#[UsesClass(AbstractUpdate::class)]
+#[UsesClass(BotStartedUpdate::class)]
+#[UsesClass(MessageCreatedUpdate::class)]
 final class ApiTest extends TestCase
 {
     private MockObject&ClientApiInterface $clientMock;
@@ -567,5 +576,180 @@ final class ApiTest extends TestCase
 
         $secretProperty = $reflection->getProperty('secret');
         $this->assertSame($secret, $secretProperty->getValue($webhookHandler));
+    }
+
+    #[Test]
+    public function getWebhookUpdateCreatesHandlerAndReturnsUpdate(): void
+    {
+        $api = new Api('fake-token', $this->clientMock, $this->modelFactoryMock);
+
+        $payload = '{"update_type":"bot_started","timestamp":123,"chat_id":1,"user":{"user_id":1,"first_name":"Test","is_bot":false,"last_activity_time":123}}';
+        $request = new ServerRequest('POST', '/webhook', [], $payload);
+
+        $expectedUpdate = new BotStartedUpdate(
+            123,
+            1,
+            new User(1, 'Test', null, null, false, 123, null, null, null),
+            null,
+            null,
+        );
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUpdate')
+            ->with(json_decode($payload, true))
+            ->willReturn($expectedUpdate);
+
+        $result = $api->getWebhookUpdate(null, $request);
+
+        $this->assertSame($expectedUpdate, $result);
+    }
+
+    #[Test]
+    public function handleWebhooksDispatchesCorrectHandler(): void
+    {
+        $api = new Api('fake-token', $this->clientMock, $this->modelFactoryMock);
+        $secret = 'my-secret';
+
+        $payload = '{"update_type":"message_created","timestamp":123,"message":{"timestamp":1,"body":{"mid":"m1","seq":1},"recipient":{"chat_type":"dialog"}}}';
+        $request = new \GuzzleHttp\Psr7\ServerRequest(
+            'POST',
+            '/webhook',
+            ['X-Max-Bot-Api-Secret' => $secret],
+            $payload,
+        );
+
+        $expectedUpdate = new MessageCreatedUpdate(
+            123,
+            Message::fromArray(
+                ['timestamp' => 1, 'body' => ['mid' => 'm1', 'seq' => 1], 'recipient' => ['chat_type' => 'dialog']]
+            ),
+            null,
+        );
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUpdate')
+            ->with(json_decode($payload, true))
+            ->willReturn($expectedUpdate);
+
+        $messageHandlerCallCount = 0;
+        $messageHandlerCapturedUpdate = null;
+
+        $messageHandler = function (MessageCreatedUpdate $update, Api $receivedApi) use (
+            &$messageHandlerCallCount,
+            &$messageHandlerCapturedUpdate,
+        ) {
+            $messageHandlerCallCount++;
+            $messageHandlerCapturedUpdate = $update;
+        };
+
+        $botStartedHandlerCallCount = 0;
+        $botStartedHandler = function () use (&$botStartedHandlerCallCount) {
+            $botStartedHandlerCallCount++;
+        };
+
+        $handlers = [
+            UpdateType::MessageCreated->value => $messageHandler,
+            UpdateType::BotStarted->value => $botStartedHandler,
+        ];
+
+        $api->handleWebhooks($handlers, $secret, $request);
+
+        $this->assertSame(1, $messageHandlerCallCount, 'MessageCreated handler should be called once.');
+        $this->assertSame(0, $botStartedHandlerCallCount, 'BotStarted handler should not be called.');
+        $this->assertSame($expectedUpdate, $messageHandlerCapturedUpdate);
+    }
+
+    #[Test]
+    public function processUpdatesBatchDispatchesHandlersAndUpdatesMarker(): void
+    {
+        $messageUpdate = new MessageCreatedUpdate(
+            1,
+            Message::fromArray(
+                ['timestamp' => 1, 'body' => ['mid' => 'm1', 'seq' => 1], 'recipient' => ['chat_type' => 'dialog']]
+            ),
+            null,
+        );
+        $botStartedUpdate = new BotStartedUpdate(
+            2, 123,
+            User::fromArray(['user_id' => 1, 'first_name' => 'Test', 'is_bot' => false, 'last_activity_time' => 1]),
+            null,
+            null,
+        );
+
+        $messageHandlerCallCount = 0;
+        $botStartedHandlerCallCount = 0;
+        $handlers = [
+            UpdateType::MessageCreated->value => function () use (&$messageHandlerCallCount) {
+                $messageHandlerCallCount++;
+            },
+            UpdateType::BotStarted->value => function () use (&$botStartedHandlerCallCount) {
+                $botStartedHandlerCallCount++;
+            },
+        ];
+
+        $apiMock = $this->getMockBuilder(Api::class)
+            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock])
+            ->onlyMethods(['getUpdates'])
+            ->getMock();
+
+        $apiMock->expects($this->once())
+            ->method('getUpdates')
+            ->willReturn(new UpdateList([$messageUpdate, $botStartedUpdate], 12345));
+
+        $marker = null;
+
+        $apiMock->processUpdatesBatch($handlers, 90, $marker);
+
+        $this->assertSame(1, $messageHandlerCallCount, 'MessageCreated handler should have been called once.');
+        $this->assertSame(1, $botStartedHandlerCallCount, 'BotStarted handler should have been called once.');
+        $this->assertSame(12345, $marker, 'Marker should have been updated to the new value.');
+    }
+
+    /**
+     * @var int Counter for processUpdatesBatch method calls.
+     */
+    private int $processUpdatesBatchCallCount = 0;
+
+    /**
+     * @throws \Throwable We catch a base \Error, so we need to declare it here.
+     */
+    #[Test]
+    public function handleUpdatesLoopContinuesAfterException(): void
+    {
+        $this->processUpdatesBatchCallCount = 0;
+        $handlers = [UpdateType::MessageCreated->value => fn() => null];
+
+        $apiMock = $this->getMockBuilder(Api::class)
+            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock])
+            ->onlyMethods(['processUpdatesBatch'])
+            ->getMock();
+
+        $apiMock->expects($this->any())
+            ->method('processUpdatesBatch')
+            ->willReturnCallback(function () {
+                switch ($this->processUpdatesBatchCallCount++) {
+                    case 0:
+                        return;
+                    case 1:
+                        throw new \BushlanovDev\MaxMessengerBot\Exceptions\NetworkException("Simulated network error");
+                    default:
+                        throw new \Error("LoopBreak");
+                }
+            });
+
+        $this->expectOutputRegex('/Network error: Simulated network error/');
+
+        try {
+            $apiMock->handleUpdates($handlers);
+        } catch (\Error $e) {
+            $this->assertSame('LoopBreak', $e->getMessage());
+            $this->assertSame(
+                3,
+                $this->processUpdatesBatchCallCount,
+                'processUpdatesBatch should have been called 3 times.',
+            );
+        }
     }
 }

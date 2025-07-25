@@ -100,6 +100,7 @@ final class WebhookHandler
     {
         return $this->addHandler(UpdateType::MessageRemoved, $handler);
     }
+
     /**
      * A convenient alias for addHandler(UpdateType::BotAdded, $handler).
      *
@@ -114,6 +115,45 @@ final class WebhookHandler
     }
 
     /**
+     * A convenient alias for addHandler(UpdateType::BotRemoved, $handler).
+     *
+     * @param callable(Models\Updates\BotRemovedFromChatUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onBotRemoved(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::BotRemoved, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::UserAdded, $handler).
+     *
+     * @param callable(Models\Updates\UserAddedToChatUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onUserAdded(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::UserAdded, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::UserRemoved, $handler).
+     *
+     * @param callable(Models\Updates\UserRemovedFromChatUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onUserRemoved(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::UserRemoved, $handler);
+    }
+
+    /**
      * A convenient alias for addHandler(UpdateType::BotStarted, $handler).
      *
      * @param callable(Models\Updates\BotStartedUpdate, Api): void $handler
@@ -124,6 +164,32 @@ final class WebhookHandler
     public function onBotStarted(callable $handler): self
     {
         return $this->addHandler(UpdateType::BotStarted, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::ChatTitleChanged, $handler).
+     *
+     * @param callable(Models\Updates\ChatTitleChangedUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onChatTitleChanged(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::ChatTitleChanged, $handler);
+    }
+
+    /**
+     * A convenient alias for addHandler(UpdateType::MessageChatCreated, $handler).
+     *
+     * @param callable(Models\Updates\MessageChatCreatedUpdate, Api): void $handler
+     *
+     * @return $this
+     * @codeCoverageIgnore
+     */
+    public function onMessageChatCreated(callable $handler): self
+    {
+        return $this->addHandler(UpdateType::MessageChatCreated, $handler);
     }
 
     /**
@@ -141,6 +207,24 @@ final class WebhookHandler
      */
     public function handle(?ServerRequestInterface $request = null): void
     {
+        $this->dispatch($this->getUpdate($request));
+
+        http_response_code(200);
+    }
+
+    /**
+     * Parses the raw request data and returns a typed Update object.
+     *
+     * @param ServerRequestInterface|null $request The Psr7 HTTP request to process.
+     *
+     * @return AbstractUpdate
+     * @throws \ReflectionException
+     * @throws SecurityException
+     * @throws SerializationException
+     * @throws \LogicException
+     */
+    public function getUpdate(?ServerRequestInterface $request = null): AbstractUpdate
+    {
         if ($request === null) {
             if (!class_exists(\GuzzleHttp\Psr7\ServerRequest::class)) {
                 // @codeCoverageIgnoreStart
@@ -153,11 +237,7 @@ final class WebhookHandler
             $request = \GuzzleHttp\Psr7\ServerRequest::fromGlobals();
         }
 
-
-        $update = $this->parseUpdate($request);
-        $this->dispatch($update);
-
-        http_response_code(200);
+        return $this->parseUpdate($request);
     }
 
     /**
