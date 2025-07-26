@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Requests;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use InvalidArgumentException;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(PhotoAttachmentRequest::class)]
-#[UsesClass(PhotoAttachmentPayload::class)]
+#[UsesClass(PhotoAttachmentRequestPayload::class)]
 #[UsesClass(PhotoToken::class)]
 final class PhotoAttachmentRequestTest extends TestCase
 {
@@ -28,7 +28,7 @@ final class PhotoAttachmentRequestTest extends TestCase
 
         $this->assertInstanceOf(PhotoAttachmentRequest::class, $request);
         $this->assertSame(AttachmentType::Image, $request->type);
-        $this->assertInstanceOf(PhotoAttachmentPayload::class, $request->payload);
+        $this->assertInstanceOf(PhotoAttachmentRequestPayload::class, $request->payload);
         $this->assertSame($url, $request->payload->url);
         $this->assertNull($request->payload->token);
         $this->assertNull($request->payload->photos);
@@ -52,7 +52,7 @@ final class PhotoAttachmentRequestTest extends TestCase
 
         $this->assertInstanceOf(PhotoAttachmentRequest::class, $request);
         $this->assertSame(AttachmentType::Image, $request->type);
-        $this->assertInstanceOf(PhotoAttachmentPayload::class, $request->payload);
+        $this->assertInstanceOf(PhotoAttachmentRequestPayload::class, $request->payload);
         $this->assertSame($token, $request->payload->token);
         $this->assertNull($request->payload->url);
         $this->assertNull($request->payload->photos);
@@ -79,7 +79,7 @@ final class PhotoAttachmentRequestTest extends TestCase
 
         $this->assertInstanceOf(PhotoAttachmentRequest::class, $request);
         $this->assertSame(AttachmentType::Image, $request->type);
-        $this->assertInstanceOf(PhotoAttachmentPayload::class, $request->payload);
+        $this->assertInstanceOf(PhotoAttachmentRequestPayload::class, $request->payload);
         $this->assertSame($photos, $request->payload->photos);
         $this->assertNull($request->payload->url);
         $this->assertNull($request->payload->token);
@@ -119,8 +119,8 @@ final class PhotoAttachmentRequestTest extends TestCase
         ?array $photos
     ): void {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Provide exactly one of "url", "token", or "photos" for PhotoAttachmentPayload.');
+        $this->expectExceptionMessage('Provide exactly one of "url", "token", or "photos" for PhotoAttachmentRequestPayload.');
 
-        new PhotoAttachmentPayload($url, $token, $photos);
+        new PhotoAttachmentRequestPayload($url, $token, $photos);
     }
 }

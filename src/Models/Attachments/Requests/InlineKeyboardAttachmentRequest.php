@@ -6,7 +6,7 @@ namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Requests;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\AbstractButton;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
 
 final readonly class InlineKeyboardAttachmentRequest extends AbstractAttachmentRequest
 {
@@ -17,7 +17,7 @@ final readonly class InlineKeyboardAttachmentRequest extends AbstractAttachmentR
     {
         parent::__construct(
             AttachmentType::InlineKeyboard,
-            new InlineKeyboardPayload($buttons)
+            new InlineKeyboardAttachmentRequestPayload($buttons),
         );
     }
 }

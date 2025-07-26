@@ -16,7 +16,11 @@ use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
 use GuzzleHttp\Psr7\ServerRequest;
+use LogicException;
+use phpmock\phpunit\PHPMock;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -30,6 +34,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(MessageCreatedUpdate::class)]
 final class WebhookHandlerTest extends TestCase
 {
+    use PHPMock;
+
     private MockObject&Api $apiMock;
     private MockObject&ModelFactory $modelFactoryMock;
     private const string SECRET = 'my-super-secret-key';
@@ -224,5 +230,31 @@ final class WebhookHandlerTest extends TestCase
         $result = $webhookHandler->getUpdate($request);
 
         $this->assertSame($expectedUpdate, $result);
+    }
+
+    #[Test]
+    public function handleWithoutRequestWhenGuzzleIsPresent(): void
+    {
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage('Webhook body is empty.');
+
+        $webhookHandler = new WebhookHandler($this->apiMock, $this->modelFactoryMock);
+        $webhookHandler->handle(null);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function handleWithoutRequestWhenGuzzleIsMissing(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/No ServerRequest was provided and "guzzlehttp\/psr7" is not found/');
+
+        $classExistsMock = $this->getFunctionMock('BushlanovDev\MaxMessengerBot', 'class_exists');
+
+        $classExistsMock->expects($this->once())->with('GuzzleHttp\Psr7\ServerRequest')->willReturn(false);
+
+        $webhookHandler = new WebhookHandler($this->apiMock, $this->modelFactoryMock);
+        $webhookHandler->handle(null);
     }
 }

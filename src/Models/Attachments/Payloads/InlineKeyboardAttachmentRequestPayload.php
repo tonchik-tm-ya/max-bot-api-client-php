@@ -6,7 +6,7 @@ namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads;
 
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\AbstractButton;
 
-final readonly class InlineKeyboardPayload extends AbstractAttachmentPayload
+final readonly class InlineKeyboardAttachmentRequestPayload extends AbstractAttachmentRequestPayload
 {
     /**
      * @param AbstractButton[][] $buttons

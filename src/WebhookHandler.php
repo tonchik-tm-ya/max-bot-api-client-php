@@ -41,7 +41,7 @@ final class WebhookHandler
      * @param callable $handler The function to execute when the update is received.
      *        The handler will receive the specific Update object (e.g., MessageCreatedUpdate) and the Api instance.
      *
-     * @return $this
+     * @return WebhookHandler
      */
     public function addHandler(UpdateType $type, callable $handler): self
     {
@@ -55,7 +55,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\MessageCreatedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      */
     public function onMessageCreated(callable $handler): self
     {
@@ -67,7 +67,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\MessageCallbackUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onMessageCallback(callable $handler): self
@@ -80,7 +80,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\MessageEditedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onMessageEdited(callable $handler): self
@@ -93,7 +93,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\MessageRemovedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onMessageRemoved(callable $handler): self
@@ -106,7 +106,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\BotAddedToChatUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onBotAdded(callable $handler): self
@@ -119,7 +119,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\BotRemovedFromChatUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onBotRemoved(callable $handler): self
@@ -132,7 +132,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\UserAddedToChatUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onUserAdded(callable $handler): self
@@ -145,7 +145,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\UserRemovedFromChatUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onUserRemoved(callable $handler): self
@@ -158,7 +158,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\BotStartedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onBotStarted(callable $handler): self
@@ -171,7 +171,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\ChatTitleChangedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onChatTitleChanged(callable $handler): self
@@ -184,7 +184,7 @@ final class WebhookHandler
      *
      * @param callable(Models\Updates\MessageChatCreatedUpdate, Api): void $handler
      *
-     * @return $this
+     * @return WebhookHandler
      * @codeCoverageIgnore
      */
     public function onMessageChatCreated(callable $handler): self
@@ -227,12 +227,10 @@ final class WebhookHandler
     {
         if ($request === null) {
             if (!class_exists(\GuzzleHttp\Psr7\ServerRequest::class)) {
-                // @codeCoverageIgnoreStart
                 throw new \LogicException(
                     'No ServerRequest was provided and "guzzlehttp/psr7" is not found. ' .
                     'Please run "composer require guzzlehttp/psr7" or create and pass your own PSR-7 request object.',
                 );
-                // @codeCoverageIgnoreEnd
             }
             $request = \GuzzleHttp\Psr7\ServerRequest::fromGlobals();
         }

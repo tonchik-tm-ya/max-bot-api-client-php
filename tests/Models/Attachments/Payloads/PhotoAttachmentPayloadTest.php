@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Payloads;
 
 use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(PhotoAttachmentPayload::class)]
+#[CoversClass(PhotoAttachmentRequestPayload::class)]
 #[UsesClass(PhotoToken::class)]
 #[UsesClass(ArrayOf::class)]
 final class PhotoAttachmentPayloadTest extends TestCase
@@ -22,7 +22,7 @@ final class PhotoAttachmentPayloadTest extends TestCase
     #[Test]
     public function canBeCreatedWithUrlOnly(): void
     {
-        $payload = new PhotoAttachmentPayload(url: 'https://example.com/photo.jpg');
+        $payload = new PhotoAttachmentRequestPayload(url: 'https://example.com/photo.jpg');
 
         $this->assertSame('https://example.com/photo.jpg', $payload->url);
         $this->assertNull($payload->token);
@@ -39,7 +39,7 @@ final class PhotoAttachmentPayloadTest extends TestCase
     #[Test]
     public function canBeCreatedWithTokenOnly(): void
     {
-        $payload = new PhotoAttachmentPayload(token: 'uploaded_token_abc');
+        $payload = new PhotoAttachmentRequestPayload(token: 'uploaded_token_abc');
 
         $this->assertSame('uploaded_token_abc', $payload->token);
         $this->assertNull($payload->url);
@@ -60,7 +60,7 @@ final class PhotoAttachmentPayloadTest extends TestCase
             new PhotoToken('token_1'),
             new PhotoToken('token_2'),
         ];
-        $payload = new PhotoAttachmentPayload(photos: $photos);
+        $payload = new PhotoAttachmentRequestPayload(photos: $photos);
 
         $this->assertSame($photos, $payload->photos);
         $this->assertNull($payload->url);
@@ -101,8 +101,8 @@ final class PhotoAttachmentPayloadTest extends TestCase
         ?array $photos
     ): void {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Provide exactly one of "url", "token", or "photos" for PhotoAttachmentPayload.');
+        $this->expectExceptionMessage('Provide exactly one of "url", "token", or "photos" for PhotoAttachmentRequestPayload.');
 
-        new PhotoAttachmentPayload($url, $token, $photos);
+        new PhotoAttachmentRequestPayload($url, $token, $photos);
     }
 }

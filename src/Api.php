@@ -13,7 +13,10 @@ use BushlanovDev\MaxMessengerBot\Exceptions\SecurityException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AudioAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\FileAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Message;
@@ -71,12 +74,10 @@ class Api
     ) {
         if ($client === null) {
             if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
-                // @codeCoverageIgnoreStart
                 throw new LogicException(
                     'No client was provided and "guzzlehttp/guzzle" is not found. ' .
                     'Please run "composer require guzzlehttp/guzzle" or create and pass your own implementation of ClientApiInterface.'
                 );
-                // @codeCoverageIgnoreEnd
             }
 
             $guzzle = new \GuzzleHttp\Client();
@@ -429,7 +430,7 @@ class Api
             throw new InvalidArgumentException("File not found or not readable: $filePath");
         }
 
-        $fileHandle = fopen($filePath, 'r');
+        $fileHandle = @fopen($filePath, 'r');
         if ($fileHandle === false) {
             throw new RuntimeException("Could not open file for reading: $filePath");
         }
@@ -450,6 +451,9 @@ class Api
 
         return match ($type) {
             UploadType::Image => PhotoAttachmentRequest::fromToken($uploadResult['token']),
+            UploadType::Video => new VideoAttachmentRequest($uploadResult['token']),
+            UploadType::Audio => new AudioAttachmentRequest($uploadResult['token']),
+            UploadType::File => new FileAttachmentRequest($uploadResult['token']), // @phpstan-ignore-line
             default => throw new LogicException(
                 "Attachment creation for type '$type->value' is not yet implemented."
             ),

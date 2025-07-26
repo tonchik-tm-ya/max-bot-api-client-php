@@ -10,7 +10,7 @@ use InvalidArgumentException;
 /**
  * Request to attach image. All fields are mutually exclusive.
  */
-final readonly class PhotoAttachmentPayload extends AbstractAttachmentPayload
+final readonly class PhotoAttachmentRequestPayload extends AbstractAttachmentRequestPayload
 {
     /**
      * @param string|null $url Any external image URL you want to attach.
@@ -25,7 +25,7 @@ final readonly class PhotoAttachmentPayload extends AbstractAttachmentPayload
     ) {
         if (count(array_filter([$this->url, $this->token, $this->photos])) !== 1) {
             throw new InvalidArgumentException(
-                'Provide exactly one of "url", "token", or "photos" for PhotoAttachmentPayload.'
+                'Provide exactly one of "url", "token", or "photos" for PhotoAttachmentRequestPayload.'
             );
         }
     }

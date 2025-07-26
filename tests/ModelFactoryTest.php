@@ -19,6 +19,8 @@ use BushlanovDev\MaxMessengerBot\Models\Sender;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\ChatTitleChangedUpdate;
+use BushlanovDev\MaxMessengerBot\Models\Updates\MessageChatCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use BushlanovDev\MaxMessengerBot\Models\User;
@@ -44,6 +46,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(UploadEndpoint::class)]
 #[UsesClass(Chat::class)]
 #[UsesClass(Image::class)]
+#[UsesClass(ChatTitleChangedUpdate::class)]
+#[UsesClass(MessageChatCreatedUpdate::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -268,6 +272,33 @@ final class ModelFactoryTest extends TestCase
                     'payload' => 'start_payload',
                     'user_locale' => 'ru-RU',
                 ],
+                [
+                    'update_type' => 'chat_title_changed',
+                    'timestamp' => 1680000000,
+                    'chat_id' => 12345,
+                    'user' => [
+                        'user_id' => 54321,
+                        'first_name' => 'John',
+                        'is_bot' => false,
+                        'last_activity_time' => 1679999999,
+                    ],
+                    'title' => 'New Awesome Chat Title',
+                ],
+                [
+                    'update_type' => 'message_chat_created',
+                    'timestamp' => 1683000001,
+                    'chat' => [
+                        'chat_id' => 54321,
+                        'type' => 'chat',
+                        'status' => 'active',
+                        'last_event_time' => 1683000001,
+                        'participants_count' => 1,
+                        'is_public' => false,
+                        'title' => 'Another Discussion',
+                    ],
+                    'message_id' => 'mid.another.message',
+                    'start_payload' => null,
+                ],
             ],
             'marker' => 12345,
         ];
@@ -276,9 +307,11 @@ final class ModelFactoryTest extends TestCase
 
         $this->assertInstanceOf(UpdateList::class, $updateList);
         $this->assertSame(12345, $updateList->marker);
-        $this->assertCount(2, $updateList->updates);
+        $this->assertCount(4, $updateList->updates);
         $this->assertInstanceOf(MessageCreatedUpdate::class, $updateList->updates[0]);
         $this->assertInstanceOf(BotStartedUpdate::class, $updateList->updates[1]);
         $this->assertSame('start_payload', $updateList->updates[1]->payload);
+        $this->assertInstanceOf(ChatTitleChangedUpdate::class, $updateList->updates[2]);
+        $this->assertInstanceOf(MessageChatCreatedUpdate::class, $updateList->updates[3]);
     }
 }

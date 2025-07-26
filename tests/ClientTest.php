@@ -280,13 +280,18 @@ final class ClientTest extends TestCase
         $this->requestMock
             ->expects($this->once())
             ->method('withBody')
-            ->with($this->callback(function (StreamInterface $stream) use ($fileContents, $fileName) {
-                $stream->rewind();
-                $body = $stream->getContents();
-                $this->assertStringContainsString('Content-Disposition: form-data; name="data"; filename="' . $fileName . '"', $body);
-                $this->assertStringContainsString($fileContents, $body);
-                return true;
-            }))
+            ->with(
+                $this->callback(function (StreamInterface $stream) use ($fileContents, $fileName) {
+                    $stream->rewind();
+                    $body = $stream->getContents();
+                    $this->assertStringContainsString(
+                        'Content-Disposition: form-data; name="data"; filename="' . $fileName . '"',
+                        $body,
+                    );
+                    $this->assertStringContainsString($fileContents, $body);
+                    return true;
+                })
+            )
             ->willReturn($this->requestMock);
 
         $this->requestMock
@@ -306,5 +311,69 @@ final class ClientTest extends TestCase
 
         $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
         $this->assertSame($responsePayload, $result);
+    }
+
+    #[Test]
+    public function uploadMethodHandlesStreamResourceCorrectly(): void
+    {
+        $uploadUrl = 'https://upload.server/path';
+        $fileContents = 'data from a stream resource';
+        $fileName = 'resource.txt';
+        $responsePayload = ['token' => 'token_from_stream_upload'];
+
+        $tmpFileHandle = tmpfile();
+        fwrite($tmpFileHandle, $fileContents);
+        rewind($tmpFileHandle);
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withHeader')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturn($this->requestMock);
+        $this->httpClientMock->method('sendRequest')->willReturn($this->responseMock);
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
+
+        $result = $this->client->upload($uploadUrl, $tmpFileHandle, $fileName);
+
+        $this->assertSame($responsePayload, $result);
+        fclose($tmpFileHandle);
+    }
+
+    #[Test]
+    public function uploadThrowsNetworkExceptionOnClientError(): void
+    {
+        $this->expectException(NetworkException::class);
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withHeader')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturn($this->requestMock);
+
+        $psrException = new class extends \Exception implements ClientExceptionInterface {
+        };
+        $this->httpClientMock
+            ->method('sendRequest')
+            ->with($this->requestMock)
+            ->willThrowException($psrException);
+
+        $this->client->upload('http://some.url', 'content', 'file.txt');
+    }
+
+    #[Test]
+    public function uploadThrowsSerializationExceptionOnInvalidJsonResponse(): void
+    {
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage('Failed to decode upload server response JSON.');
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withHeader')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturn($this->requestMock);
+
+        $this->httpClientMock
+            ->method('sendRequest')
+            ->with($this->requestMock)
+            ->willReturn($this->responseMock);
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn('{not-a-valid-json');
+        $this->client->upload('http://some.url', 'content', 'file.txt');
     }
 }

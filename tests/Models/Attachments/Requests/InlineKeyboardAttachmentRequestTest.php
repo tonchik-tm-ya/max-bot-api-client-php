@@ -10,7 +10,7 @@ use BushlanovDev\MaxMessengerBot\Enums\Intent;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\AbstractButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\LinkButton;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(InlineKeyboardAttachmentRequest::class)]
-#[UsesClass(InlineKeyboardPayload::class)]
+#[UsesClass(InlineKeyboardAttachmentRequestPayload::class)]
 #[UsesClass(AbstractButton::class)]
 #[UsesClass(CallbackButton::class)]
 #[UsesClass(LinkButton::class)]
@@ -35,7 +35,7 @@ final class InlineKeyboardAttachmentRequestTest extends TestCase
 
         $this->assertInstanceOf(InlineKeyboardAttachmentRequest::class, $request);
         $this->assertSame(AttachmentType::InlineKeyboard, $request->type);
-        $this->assertInstanceOf(InlineKeyboardPayload::class, $request->payload);
+        $this->assertInstanceOf(InlineKeyboardAttachmentRequestPayload::class, $request->payload);
         $this->assertSame($buttons, $request->payload->buttons);
 
         $expectedArray = [

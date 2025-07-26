@@ -12,13 +12,26 @@ use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
+use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardPayload;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\ContactAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\LocationAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\ShareAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\StickerAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\UploadedInfoAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AudioAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\ContactAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\FileAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\LocationAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\ShareAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\StickerAttachmentRequest;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Message;
@@ -36,13 +49,19 @@ use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
 use GuzzleHttp\Psr7\ServerRequest;
 use InvalidArgumentException;
+use LogicException;
+use org\bovigo\vfs\vfsStream;
+use phpmock\phpunit\PHPMock;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use RuntimeException;
 
 #[CoversClass(Api::class)]
 #[UsesClass(Result::class)]
@@ -54,11 +73,11 @@ use ReflectionClass;
 #[UsesClass(Recipient::class)]
 #[UsesClass(Sender::class)]
 #[UsesClass(CallbackButton::class)]
-#[UsesClass(InlineKeyboardPayload::class)]
+#[UsesClass(InlineKeyboardAttachmentRequestPayload::class)]
 #[UsesClass(InlineKeyboardAttachmentRequest::class)]
 #[UsesClass(PhotoToken::class)]
 #[UsesClass(PhotoAttachmentRequest::class)]
-#[UsesClass(PhotoAttachmentPayload::class)]
+#[UsesClass(PhotoAttachmentRequestPayload::class)]
 #[UsesClass(UploadEndpoint::class)]
 #[UsesClass(Chat::class)]
 #[UsesClass(UpdateList::class)]
@@ -67,8 +86,22 @@ use ReflectionClass;
 #[UsesClass(AbstractUpdate::class)]
 #[UsesClass(BotStartedUpdate::class)]
 #[UsesClass(MessageCreatedUpdate::class)]
+#[UsesClass(UploadedInfoAttachmentRequestPayload::class)]
+#[UsesClass(VideoAttachmentRequest::class)]
+#[UsesClass(AudioAttachmentRequest::class)]
+#[UsesClass(FileAttachmentRequest::class)]
+#[UsesClass(StickerAttachmentRequest::class)]
+#[UsesClass(StickerAttachmentRequestPayload::class)]
+#[UsesClass(ContactAttachmentRequest::class)]
+#[UsesClass(ContactAttachmentRequestPayload::class)]
+#[UsesClass(LocationAttachmentRequest::class)]
+#[UsesClass(LocationAttachmentRequestPayload::class)]
+#[UsesClass(ShareAttachmentRequest::class)]
+#[UsesClass(ShareAttachmentRequestPayload::class)]
 final class ApiTest extends TestCase
 {
+    use PHPMock;
+
     private MockObject&ClientApiInterface $clientMock;
     private MockObject&ModelFactory $modelFactoryMock;
     private Api $api;
@@ -751,5 +784,417 @@ final class ApiTest extends TestCase
                 'processUpdatesBatch should have been called 3 times.',
             );
         }
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function constructorThrowsExceptionWhenGuzzleIsMissing(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/"guzzlehttp\/guzzle" is not found/');
+
+        $classExistsMock = $this->getFunctionMock('BushlanovDev\MaxMessengerBot', 'class_exists');
+
+        $classExistsMock->expects($this->once())
+            ->with(\GuzzleHttp\Client::class)
+            ->willReturn(false);
+
+        new Api('some-token');
+    }
+
+    #[Test]
+    public function handleUpdatesLoopCatchesGenericExceptionAndContinues(): void
+    {
+        $this->processUpdatesBatchCallCount = 0;
+        $handlers = [UpdateType::MessageCreated->value => fn() => null];
+
+        $apiMock = $this->getMockBuilder(Api::class)
+            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock])
+            ->onlyMethods(['processUpdatesBatch'])
+            ->getMock();
+
+        $apiMock->expects($this->any())
+            ->method('processUpdatesBatch')
+            ->willReturnCallback(function () {
+                switch ($this->processUpdatesBatchCallCount++) {
+                    case 0:
+                        return;
+                    case 1:
+                        throw new \BushlanovDev\MaxMessengerBot\Exceptions\SerializationException(
+                            "Simulated JSON error"
+                        );
+                    default:
+                        throw new \Error("LoopBreak");
+                }
+            });
+
+        $this->expectOutputRegex('/An error occurred: Simulated JSON error/');
+
+        try {
+            $apiMock->handleUpdates($handlers);
+        } catch (\Error $e) {
+            $this->assertSame('LoopBreak', $e->getMessage());
+            $this->assertSame(
+                3,
+                $this->processUpdatesBatchCallCount,
+                'processUpdatesBatch should have been called 3 times, indicating the loop continued after the exception.',
+            );
+        }
+    }
+
+    #[Test]
+    public function uploadAttachmentThrowsRuntimeExceptionWhenPathIsADirectory(): void
+    {
+        $root = vfsStream::setup('root');
+        $directory = vfsStream::newDirectory('my_dir')->at($root);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/Could not open file for reading/');
+
+        $this->api->uploadAttachment(UploadType::File, $directory->url());
+    }
+
+    #[Test]
+    public function uploadAttachmentThrowsSerializationExceptionForInvalidUploadResponse(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($filePath, 'content');
+
+        $uploadType = UploadType::Image;
+        $uploadUrl = 'https://upload.server/path';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl);
+
+        $invalidUploadResponse = ['status' => 'error', 'message' => 'Upload failed'];
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($invalidUploadResponse);
+
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage('Could not find "token" in upload server response.');
+
+        try {
+            $this->api->uploadAttachment($uploadType, $filePath);
+        } finally {
+            unlink($filePath);
+        }
+    }
+
+    #[Test]
+    public function uploadAttachmentSuccessfullyUploadsVideoAndReturnsAttachment(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_video_');
+        file_put_contents($filePath, 'fake-video-content');
+
+        $uploadType = UploadType::Video;
+        $uploadUrl = 'https://upload.server/video_path';
+        $uploadToken = 'VIDEO_TOKEN_XYZ';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $uploadResponse = ['token' => $uploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl);
+        $expectedAttachment = new VideoAttachmentRequest($uploadToken);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($uploadResponse);
+
+        $result = $this->api->uploadAttachment($uploadType, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentSuccessfullyUploadsAudioAndReturnsAttachment(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_audio_');
+        file_put_contents($filePath, 'fake-audio-content');
+
+        $uploadType = UploadType::Audio;
+        $uploadUrl = 'https://upload.server/audio_path';
+        $uploadToken = 'AUDIO_TOKEN_ABC';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $uploadResponse = ['token' => $uploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl);
+        $expectedAttachment = new AudioAttachmentRequest($uploadToken);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($uploadResponse);
+
+        $result = $this->api->uploadAttachment($uploadType, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentSuccessfullyUploadsFileAndReturnsAttachment(): void
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_file_');
+        file_put_contents($filePath, 'fake-file-content');
+
+        $uploadType = UploadType::File;
+        $uploadUrl = 'https://upload.server/file_path';
+        $uploadToken = 'FILE_TOKEN_QWERTY';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $uploadResponse = ['token' => $uploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl);
+        $expectedAttachment = new FileAttachmentRequest($uploadToken);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($uploadResponse);
+
+        $result = $this->api->uploadAttachment($uploadType, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function sendMessageWithStickerAttachmentBuildsCorrectRequest(): void
+    {
+        $chatId = 12345;
+        $stickerCode = 'sticker_id_ok';
+        $stickerRequest = new StickerAttachmentRequest($stickerCode);
+
+        $expectedBody = [
+            'attachments' => [
+                [
+                    'type' => 'sticker',
+                    'payload' => [
+                        'code' => $stickerCode,
+                    ],
+                ],
+            ],
+            'notify' => true,
+        ];
+        $expectedQuery = ['chat_id' => $chatId, 'disable_link_preview' => false];
+
+        $apiResponse = [
+            'message' => [
+                'timestamp' => time(),
+                'body' => ['mid' => 'mid.sticker.1', 'seq' => 10],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => $chatId],
+            ]
+        ];
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('POST', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(chatId: $chatId, attachments: [$stickerRequest]);
+
+        $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function sendMessageWithContactAttachmentBuildsCorrectRequest(): void
+    {
+        $chatId = 12345;
+        $contactRequest = new ContactAttachmentRequest(name: 'Service Desk', vcfPhone: '555-1234');
+
+        $expectedBody = [
+            'attachments' => [
+                [
+                    'type' => 'contact',
+                    'payload' => [
+                        'name' => 'Service Desk',
+                        'contact_id' => null,
+                        'vcf_info' => null,
+                        'vcf_phone' => '555-1234',
+                    ],
+                ],
+            ],
+            'notify' => true,
+        ];
+        $expectedQuery = ['chat_id' => $chatId, 'disable_link_preview' => false];
+
+        $apiResponse = [
+            'message' => [
+                'timestamp' => time(),
+                'body' => ['mid' => 'mid.contact.1', 'seq' => 11],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => $chatId],
+            ]
+        ];
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('POST', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(chatId: $chatId, attachments: [$contactRequest]);
+
+        $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function sendMessageWithLocationAttachmentBuildsCorrectRequest(): void
+    {
+        $chatId = 12345;
+        $latitude = 59.9343;
+        $longitude = 30.3351;
+        $locationRequest = new LocationAttachmentRequest($latitude, $longitude);
+
+        $expectedBody = [
+            'attachments' => [
+                [
+                    'type' => 'location',
+                    'payload' => [
+                        'latitude' => $latitude,
+                        'longitude' => $longitude,
+                    ],
+                ],
+            ],
+            'notify' => true,
+        ];
+        $expectedQuery = ['chat_id' => $chatId, 'disable_link_preview' => false];
+
+        $apiResponse = [
+            'message' => [
+                'timestamp' => time(),
+                'body' => ['mid' => 'mid.location.1', 'seq' => 12],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => $chatId],
+            ]
+        ];
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('POST', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(chatId: $chatId, attachments: [$locationRequest]);
+
+        $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function sendMessageWithShareAttachmentBuildsCorrectRequest(): void
+    {
+        $chatId = 12345;
+        $url = 'https://dev.max.ru';
+        $shareRequest = ShareAttachmentRequest::fromUrl($url);
+
+        $expectedBody = [
+            'attachments' => [
+                [
+                    'type' => 'share',
+                    'payload' => [
+                        'url' => $url,
+                        'token' => null,
+                    ],
+                ],
+            ],
+            'notify' => true,
+        ];
+        $expectedQuery = ['chat_id' => $chatId, 'disable_link_preview' => false];
+
+        $apiResponse = [
+            'message' => [
+                'timestamp' => time(),
+                'body' => ['mid' => 'mid.share.1', 'seq' => 13],
+                'recipient' => ['chat_type' => 'dialog', 'user_id' => $chatId],
+            ]
+        ];
+        $expectedMessageObject = Message::fromArray($apiResponse['message']);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('POST', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($apiResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessage')
+            ->with($apiResponse['message'])
+            ->willReturn($expectedMessageObject);
+
+        $result = $this->api->sendMessage(chatId: $chatId, attachments: [$shareRequest]);
+
+        $this->assertSame($expectedMessageObject, $result);
     }
 }

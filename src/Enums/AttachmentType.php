@@ -11,7 +11,7 @@ enum  AttachmentType: string
     case Audio = 'audio';
     case File = 'file';
     case Sticker = 'sticker';
-    case Contract = 'contract';
+    case Contact = 'contact';
     case InlineKeyboard = 'inline_keyboard';
     case Location = 'location';
     case Share = 'share';

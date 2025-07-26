@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Requests;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoToken;
 
 /**
@@ -22,7 +22,7 @@ final readonly class PhotoAttachmentRequest extends AbstractAttachmentRequest
      */
     public static function fromUrl(string $url): self
     {
-        return new self(new PhotoAttachmentPayload(url: $url));
+        return new self(new PhotoAttachmentRequestPayload(url: $url));
     }
 
     /**
@@ -34,7 +34,7 @@ final readonly class PhotoAttachmentRequest extends AbstractAttachmentRequest
      */
     public static function fromToken(string $token): self
     {
-        return new self(new PhotoAttachmentPayload(token: $token));
+        return new self(new PhotoAttachmentRequestPayload(token: $token));
     }
 
     /**
@@ -46,13 +46,13 @@ final readonly class PhotoAttachmentRequest extends AbstractAttachmentRequest
      */
     public static function fromPhotos(array $photos): self
     {
-        return new self(new PhotoAttachmentPayload(photos: $photos));
+        return new self(new PhotoAttachmentRequestPayload(photos: $photos));
     }
 
     /**
-     * @param PhotoAttachmentPayload $payload Request to attach image.
+     * @param PhotoAttachmentRequestPayload $payload Request to attach image.
      */
-    private function __construct(PhotoAttachmentPayload $payload)
+    private function __construct(PhotoAttachmentRequestPayload $payload)
     {
         parent::__construct(AttachmentType::Image, $payload);
     }
