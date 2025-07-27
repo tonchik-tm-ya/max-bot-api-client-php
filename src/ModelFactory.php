@@ -7,6 +7,7 @@ namespace BushlanovDev\MaxMessengerBot;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
@@ -177,5 +178,18 @@ class ModelFactory
                 'Unknown or unsupported update type received: ' . ($data['update_type'] ?? 'none')
             ),
         };
+    }
+
+    /**
+     * Information about chat list.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return ChatList
+     * @throws ReflectionException
+     */
+    public function createChatList(array $data): ChatList
+    {
+        return ChatList::fromArray($data);
     }
 }

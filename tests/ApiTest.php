@@ -10,6 +10,7 @@ use BushlanovDev\MaxMessengerBot\ClientApiInterface;
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
 use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
+use BushlanovDev\MaxMessengerBot\Enums\SenderAction;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
@@ -34,6 +35,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\StickerAttachmentRe
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
@@ -98,6 +100,7 @@ use RuntimeException;
 #[UsesClass(LocationAttachmentRequestPayload::class)]
 #[UsesClass(ShareAttachmentRequest::class)]
 #[UsesClass(ShareAttachmentRequestPayload::class)]
+#[UsesClass(ChatList::class)]
 final class ApiTest extends TestCase
 {
     use PHPMock;
@@ -1196,5 +1199,159 @@ final class ApiTest extends TestCase
         $result = $this->api->sendMessage(chatId: $chatId, attachments: [$shareRequest]);
 
         $this->assertSame($expectedMessageObject, $result);
+    }
+
+    #[Test]
+    public function getChatsPassesAllParametersToClient(): void
+    {
+        $count = 30;
+        $marker = 12345;
+        $expectedQuery = ['count' => $count, 'marker' => $marker];
+
+        $rawResponse = ['chats' => [], 'marker' => 54321];
+        $expectedChatList = new ChatList([], 54321);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', '/chats', $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createChatList')
+            ->with($rawResponse)
+            ->willReturn($expectedChatList);
+
+        $result = $this->api->getChats($count, $marker);
+
+        $this->assertSame($expectedChatList, $result);
+    }
+
+    #[Test]
+    public function getChatsHandlesNullParametersCorrectly(): void
+    {
+        $expectedQuery = [];
+        $rawResponse = ['chats' => [], 'marker' => null];
+        $expectedChatList = new ChatList([], null);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', '/chats', $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createChatList')
+            ->with($rawResponse)
+            ->willReturn($expectedChatList);
+
+        $result = $this->api->getChats(null, null);
+
+        $this->assertSame($expectedChatList, $result);
+    }
+
+    #[Test]
+    public function getChatByLinkCallsClientAndFactoryCorrectly(): void
+    {
+        $chatLink = '@test_channel';
+        $rawResponseData = [
+            'chat_id' => 987,
+            'type' => 'channel',
+            'status' => 'active',
+            'last_event_time' => 1,
+            'participants_count' => 100,
+            'is_public' => true,
+            'title' => 'Test Channel',
+        ];
+
+        $expectedChatObject = Chat::fromArray($rawResponseData);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/chats/' . $chatLink)
+            ->willReturn($rawResponseData);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChat')
+            ->with($rawResponseData)
+            ->willReturn($expectedChatObject);
+
+        $result = $this->api->getChatByLink($chatLink);
+
+        $this->assertSame($expectedChatObject, $result);
+    }
+
+    #[Test]
+    public function getChatByLinkHandlesLinkWithoutAtSymbol(): void
+    {
+        $chatLink = 'test_channel_no_at';
+        $rawResponseData = [
+            'chat_id' => 987,
+            'type' => 'channel',
+            'status' => 'active',
+            'last_event_time' => 1,
+            'participants_count' => 100,
+            'is_public' => true,
+            'title' => 'Test Channel',
+        ];
+        $expectedChatObject = Chat::fromArray($rawResponseData);
+
+        $this->clientMock->method('request')->willReturn($rawResponseData);
+        $this->modelFactoryMock->method('createChat')->willReturn($expectedChatObject);
+
+        $this->api->getChatByLink($chatLink);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
+    public function deleteChatCallsClientAndFactoryCorrectly(): void
+    {
+        $chatId = 123456789;
+        $rawResponseData = ['success' => true, 'message' => null];
+        $expectedResultObject = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('DELETE'), self::equalTo('/chats/' . $chatId))
+            ->willReturn($rawResponseData);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponseData)
+            ->willReturn($expectedResultObject);
+
+        $result = $this->api->deleteChat($chatId);
+
+        $this->assertSame($expectedResultObject, $result);
+        $this->assertTrue($result->success);
+    }
+
+    #[Test]
+    public function sendActionCallsClientCorrectly(): void
+    {
+        $chatId = 12345;
+        $action = SenderAction::TypingOn;
+        $uri = '/chats/' . $chatId . '/actions';
+        $expectedBody = ['action' => 'typing_on'];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('POST'), self::equalTo($uri), self::equalTo([]), self::equalTo($expectedBody))
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->sendAction($chatId, $action);
+        $this->assertSame($expectedResult, $result);
     }
 }

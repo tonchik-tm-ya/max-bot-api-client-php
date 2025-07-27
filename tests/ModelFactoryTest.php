@@ -10,6 +10,7 @@ use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\Image;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
@@ -48,6 +49,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Image::class)]
 #[UsesClass(ChatTitleChangedUpdate::class)]
 #[UsesClass(MessageChatCreatedUpdate::class)]
+#[UsesClass(ChatList::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -313,5 +315,40 @@ final class ModelFactoryTest extends TestCase
         $this->assertSame('start_payload', $updateList->updates[1]->payload);
         $this->assertInstanceOf(ChatTitleChangedUpdate::class, $updateList->updates[2]);
         $this->assertInstanceOf(MessageChatCreatedUpdate::class, $updateList->updates[3]);
+    }
+
+    #[Test]
+    public function createChatListDelegatesCreationToChatListModel(): void
+    {
+        $rawData = [
+            'chats' => [
+                [
+                    'chat_id' => 101,
+                    'type' => 'chat',
+                    'status' => 'active',
+                    'last_event_time' => 1,
+                    'participants_count' => 5,
+                    'is_public' => false,
+                ],
+                [
+                    'chat_id' => 102,
+                    'type' => 'dialog',
+                    'status' => 'suspended',
+                    'last_event_time' => 2,
+                    'participants_count' => 2,
+                    'is_public' => false,
+                ],
+            ],
+            'marker' => 98765,
+        ];
+
+        $chatList = $this->factory->createChatList($rawData);
+
+        $this->assertInstanceOf(ChatList::class, $chatList);
+
+        $this->assertSame(98765, $chatList->marker);
+        $this->assertCount(2, $chatList->chats);
+        $this->assertInstanceOf(Chat::class, $chatList->chats[0]);
+        $this->assertSame(101, $chatList->chats[0]->chatId);
     }
 }

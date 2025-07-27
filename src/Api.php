@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
+use BushlanovDev\MaxMessengerBot\Enums\SenderAction;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
@@ -19,6 +20,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequ
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -46,6 +48,7 @@ class Api
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
     private const string METHOD_DELETE = 'DELETE';
+//    private const string METHOD_PATCH = 'PATCH';
 
     private const string ACTION_ME = '/me';
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
@@ -475,6 +478,101 @@ class Api
     {
         return $this->modelFactory->createChat(
             $this->client->request(self::METHOD_GET, self::ACTION_CHATS . '/' . $chatId)
+        );
+    }
+
+    /**
+     * Returns chat/channel information by its public link or a dialog with a user by their username.
+     * The link should be prefixed with '@' or can be passed without it.
+     *
+     * @param string $chatLink Public chat link (e.g., '@mychannel') or username (e.g., '@john_doe').
+     *
+     * @return Chat
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getChatByLink(string $chatLink): Chat
+    {
+        return $this->modelFactory->createChat(
+            $this->client->request(
+                self::METHOD_GET,
+                self::ACTION_CHATS . '/' . $chatLink,
+            )
+        );
+    }
+
+    /**
+     * Returns information about chats that the bot participated in. The result is a paginated list.
+     *
+     * @param int|null $count Number of chats requested (1-100, default 50).
+     * @param int|null $marker Points to the next data page. Use null for the first page.
+     *
+     * @return ChatList
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getChats(?int $count = null, ?int $marker = null): ChatList
+    {
+        $query = [
+            'count' => $count,
+            'marker' => $marker,
+        ];
+
+        return $this->modelFactory->createChatList(
+            $this->client->request(
+                self::METHOD_GET,
+                self::ACTION_CHATS,
+                array_filter($query, fn($value) => $value !== null),
+            )
+        );
+    }
+
+    /**
+     * Deletes a chat for all participants. The bot must have appropriate permissions.
+     *
+     * @param int $chatId Chat identifier to delete.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function deleteChat(int $chatId): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                self::ACTION_CHATS . '/' . $chatId,
+            )
+        );
+    }
+
+    /**
+     * Sends a specific action to a chat, such as 'typing...'. This is used to show bot activity to the user.
+     *
+     * @param int $chatId The identifier of the target chat.
+     * @param SenderAction $action The action to be sent.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function sendAction(int $chatId, SenderAction $action): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_POST,
+                self::ACTION_CHATS . '/' . $chatId . '/actions',
+                [],
+                ['action' => $action->value],
+            )
         );
     }
 }

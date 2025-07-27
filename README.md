@@ -30,12 +30,12 @@
 
 #### Chats
 
-- [ ] `GET /chats` (`getChats`) — *Получение списка всех чатов бота.*
-- [ ] `GET /chats/{chatLink}` (`getChatByLink`) — *Получение информации о чате по ссылке.*
+- [x] `GET /chats` (`getChats`) — *Получение списка всех чатов бота.*
+- [x] `GET /chats/{chatLink}` (`getChatByLink`) — *Получение информации о чате по ссылке.*
 - [x] `GET /chats/{chatId}` (`getChat`) — *Получение информации о чате по ID.*
 - [ ] `PATCH /chats/{chatId}` (`editChat`) — *Редактирование информации о чате.*
-- [ ] `DELETE /chats/{chatId}` (`deleteChat`) — *Удаление чата.*
-- [ ] `POST /chats/{chatId}/actions` (`sendAction`) — *Отправка действия в чат (например, "печатает...").*
+- [x] `DELETE /chats/{chatId}` (`deleteChat`) — *Удаление чата.*
+- [x] `POST /chats/{chatId}/actions` (`sendAction`) — *Отправка действия в чат (например, "печатает...").*
 - [ ] `GET /chats/{chatId}/pin` (`getPinnedMessage`) — *Получение закрепленного сообщения.*
 - [ ] `PUT /chats/{chatId}/pin` (`pinMessage`) — *Закрепление сообщения.*
 - [ ] `DELETE /chats/{chatId}/pin` (`unpinMessage`) — *Открепление сообщения.*
@@ -68,3 +68,7 @@
 - [ ] `GET /messages/{messageId}` (`getMessageById`) — *Получение сообщения по ID.*
 - [ ] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) — *Получение детальной информации о видео.*
 - [ ] `POST /answers` (`answerOnCallback`) — *Ответ на нажатие callback-кнопки.*
+
+## Лицензия
+
+Данная библиотека распространяется по лицензии MIT - подробности см. в файле [LICENSE](LICENSE).
