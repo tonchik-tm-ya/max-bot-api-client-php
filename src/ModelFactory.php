@@ -8,6 +8,7 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
+use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
@@ -191,5 +192,18 @@ class ModelFactory
     public function createChatList(array $data): ChatList
     {
         return ChatList::fromArray($data);
+    }
+
+    /**
+     * Creates a ChatMember object from raw API data.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return ChatMember
+     * @throws ReflectionException
+     */
+    public function createChatMember(array $data): ChatMember
+    {
+        return ChatMember::fromArray($data);
     }
 }

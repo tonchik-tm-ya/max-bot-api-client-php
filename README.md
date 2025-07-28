@@ -36,11 +36,11 @@
 - [ ] `PATCH /chats/{chatId}` (`editChat`) — *Редактирование информации о чате.*
 - [x] `DELETE /chats/{chatId}` (`deleteChat`) — *Удаление чата.*
 - [x] `POST /chats/{chatId}/actions` (`sendAction`) — *Отправка действия в чат (например, "печатает...").*
-- [ ] `GET /chats/{chatId}/pin` (`getPinnedMessage`) — *Получение закрепленного сообщения.*
+- [x] `GET /chats/{chatId}/pin` (`getPinnedMessage`) — *Получение закрепленного сообщения.*
 - [ ] `PUT /chats/{chatId}/pin` (`pinMessage`) — *Закрепление сообщения.*
-- [ ] `DELETE /chats/{chatId}/pin` (`unpinMessage`) — *Открепление сообщения.*
-- [ ] `GET /chats/{chatId}/members/me` (`getMembership`) — *Получение информации о членстве бота в чате.*
-- [ ] `DELETE /chats/{chatId}/members/me` (`leaveChat`) — *Выход бота из чата.*
+- [x] `DELETE /chats/{chatId}/pin` (`unpinMessage`) — *Открепление сообщения.*
+- [x] `GET /chats/{chatId}/members/me` (`getMembership`) — *Получение информации о членстве бота в чате.*
+- [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) — *Выход бота из чата.*
 - [ ] `GET /chats/{chatId}/members/admins` (`getAdmins`) — *Получение администраторов чата.*
 - [ ] `POST /chats/{chatId}/members/admins` (`postAdmins`) — *Назначение администраторов чата.*
 - [ ] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) — *Снятие прав администратора.*

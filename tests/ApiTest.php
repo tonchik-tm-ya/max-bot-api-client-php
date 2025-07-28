@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Tests;
 
 use BushlanovDev\MaxMessengerBot\Api;
+use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
@@ -36,6 +37,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequ
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
+use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
@@ -101,6 +103,8 @@ use RuntimeException;
 #[UsesClass(ShareAttachmentRequest::class)]
 #[UsesClass(ShareAttachmentRequestPayload::class)]
 #[UsesClass(ChatList::class)]
+#[UsesClass(ChatMember::class)]
+#[UsesClass(ArrayOf::class)]
 final class ApiTest extends TestCase
 {
     use PHPMock;
@@ -1352,6 +1356,148 @@ final class ApiTest extends TestCase
             ->willReturn($expectedResult);
 
         $result = $this->api->sendAction($chatId, $action);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function getPinnedMessageReturnsMessageOnSuccess(): void
+    {
+        $chatId = 12345;
+        $uri = '/chats/' . $chatId . '/pin';
+
+        $messageData = [
+            'timestamp' => 1,
+            'body' => ['mid' => 'pinned.msg', 'seq' => 1],
+            'recipient' => ['chat_type' => 'chat', 'chat_id' => $chatId],
+        ];
+        $rawResponse = ['message' => $messageData];
+
+        $expectedMessage = Message::fromArray($messageData);
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessage')
+            ->with($messageData)
+            ->willReturn($expectedMessage);
+
+        $actualMessage = $this->api->getPinnedMessage($chatId);
+
+        $this->assertSame($expectedMessage, $actualMessage);
+    }
+
+    #[Test]
+    public function getPinnedMessageReturnsNullWhenNoMessageIsPinned(): void
+    {
+        $chatId = 54321;
+        $uri = '/chats/' . $chatId . '/pin';
+        $rawResponse = ['message' => null];
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->never())
+            ->method('createMessage');
+
+        $result = $this->api->getPinnedMessage($chatId);
+
+        $this->assertNull($result);
+    }
+
+    #[Test]
+    public function unpinMessageCallsClientCorrectly(): void
+    {
+        $chatId = 98765;
+        $uri = '/chats/' . $chatId . '/pin';
+        $rawResponse = ['success' => true, 'message' => null];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('DELETE'), self::equalTo($uri))
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->unpinMessage($chatId);
+
+        $this->assertSame($expectedResult, $result);
+        $this->assertTrue($result->success);
+    }
+
+    #[Test]
+    public function getMembershipReturnsCorrectChatMember(): void
+    {
+        $chatId = 12345;
+        $uri = sprintf('/chats/%d/members/me', $chatId);
+
+        $rawResponse = [
+            'user_id' => 1,
+            'first_name' => 'MyBot',
+            'is_bot' => true,
+            'last_activity_time' => 1,
+            'last_name' => null,
+            'username' => 'my_bot',
+            'description' => null,
+            'avatar_url' => null,
+            'full_avatar_url' => null,
+            'last_access_time' => 2,
+            'is_owner' => false,
+            'is_admin' => true,
+            'join_time' => 0,
+            'permissions' => ['write'],
+        ];
+        $expectedMember = ChatMember::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChatMember')
+            ->with($rawResponse)
+            ->willReturn($expectedMember);
+
+        $result = $this->api->getMembership($chatId);
+
+        $this->assertSame($expectedMember, $result);
+    }
+
+    #[Test]
+    public function leaveChatCallsClientCorrectly(): void
+    {
+        $chatId = 54321;
+        $uri = sprintf('/chats/%d/members/me', $chatId);
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('DELETE'), self::equalTo($uri))
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->leaveChat($chatId);
+
         $this->assertSame($expectedResult, $result);
     }
 }

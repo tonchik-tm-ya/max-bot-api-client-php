@@ -21,6 +21,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequ
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
+use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -55,6 +56,9 @@ class Api
     private const string ACTION_MESSAGES = '/messages';
     private const string ACTION_UPLOADS = '/uploads';
     private const string ACTION_CHATS = '/chats';
+    private const string ACTION_CHATS_ACTIONS = '/chats/%d/actions';
+    private const string ACTION_CHATS_PIN = '/chats/%d/pin';
+    private const string ACTION_CHATS_MEMBERS_ME = '/chats/%d/members/me';
     private const string ACTION_UPDATES = '/updates';
 
     private readonly ClientApiInterface $client;
@@ -569,9 +573,98 @@ class Api
         return $this->modelFactory->createResult(
             $this->client->request(
                 self::METHOD_POST,
-                self::ACTION_CHATS . '/' . $chatId . '/actions',
+                sprintf(self::ACTION_CHATS_ACTIONS, $chatId),
                 [],
                 ['action' => $action->value],
+            )
+        );
+    }
+
+    /**
+     * Gets the pinned message in a chat or channel.
+     *
+     * @param int $chatId Identifier of the chat to get its pinned message from.
+     *
+     * @return Message|null
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getPinnedMessage(int $chatId): ?Message
+    {
+        $response = $this->client->request(
+            self::METHOD_GET,
+            sprintf(self::ACTION_CHATS_PIN, $chatId),
+        );
+
+        if (!isset($response['message']) || empty($response['message'])) {
+            return null;
+        }
+
+
+        return $this->modelFactory->createMessage($response['message']);
+    }
+
+    /**
+     * Unpins a message in a chat or channel.
+     *
+     * @param int $chatId Chat identifier to remove the pinned message from.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function unpinMessage(int $chatId): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                sprintf(self::ACTION_CHATS_PIN, $chatId),
+            )
+        );
+    }
+
+    /**
+     * Returns chat membership info for the current bot.
+     *
+     * @param int $chatId Chat identifier.
+     *
+     * @return ChatMember
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getMembership(int $chatId): ChatMember
+    {
+        return $this->modelFactory->createChatMember(
+            $this->client->request(
+                self::METHOD_GET,
+                sprintf(self::ACTION_CHATS_MEMBERS_ME, $chatId),
+            )
+        );
+    }
+
+    /**
+     * Removes the bot from a chat's members.
+     *
+     * @param int $chatId Chat identifier to leave from.
+     *
+     * @return Result A simple success/fail result.
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function leaveChat(int $chatId): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                sprintf(self::ACTION_CHATS_MEMBERS_ME, $chatId),
             )
         );
     }

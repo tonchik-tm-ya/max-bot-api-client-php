@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Tests;
 
 use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
+use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
+use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\Image;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
@@ -50,6 +52,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(ChatTitleChangedUpdate::class)]
 #[UsesClass(MessageChatCreatedUpdate::class)]
 #[UsesClass(ChatList::class)]
+#[UsesClass(ChatMember::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -350,5 +353,37 @@ final class ModelFactoryTest extends TestCase
         $this->assertCount(2, $chatList->chats);
         $this->assertInstanceOf(Chat::class, $chatList->chats[0]);
         $this->assertSame(101, $chatList->chats[0]->chatId);
+    }
+
+    #[Test]
+    public function createChatMember()
+    {
+        $rawData = [
+            'user_id' => 101,
+            'first_name' => 'AdminBot',
+            'last_name' => null,
+            'username' => 'admin_bot',
+            'is_bot' => true,
+            'last_activity_time' => 1678886400,
+            'description' => 'I am a bot.',
+            'avatar_url' => null,
+            'full_avatar_url' => null,
+            'last_access_time' => 1679000000,
+            'is_owner' => false,
+            'is_admin' => true,
+            'join_time' => 1678000000,
+            'permissions' => ['pin_message', 'write'],
+        ];
+
+        $chatMember = $this->factory->createChatMember($rawData);
+
+        $this->assertInstanceOf(ChatMember::class, $chatMember);
+        $this->assertTrue($chatMember->isAdmin);
+        $this->assertFalse($chatMember->isOwner);
+        $this->assertIsArray($chatMember->permissions);
+        $this->assertCount(2, $chatMember->permissions);
+        $this->assertSame(ChatAdminPermission::PinMessage, $chatMember->permissions[0]);
+        $this->assertSame(ChatAdminPermission::Write, $chatMember->permissions[1]);
+        $this->assertEquals($rawData, $chatMember->toArray());
     }
 }
