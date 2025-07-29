@@ -1500,4 +1500,183 @@ final class ApiTest extends TestCase
 
         $this->assertSame($expectedResult, $result);
     }
+
+    #[Test]
+    public function getMessagesCallsClientWithAllParameters(): void
+    {
+        $chatId = 12345;
+        $messageIds = ['mid.1', 'mid.2'];
+        $from = 1678880000;
+        $to = 1678886400;
+        $count = 10;
+
+        $expectedQuery = [
+            'chat_id' => $chatId,
+            'message_ids' => 'mid.1,mid.2',
+            'from' => $from,
+            'to' => $to,
+            'count' => $count,
+        ];
+
+        $messageData = [
+            'timestamp' => 1,
+            'body' => ['mid' => 'mid.1', 'seq' => 1],
+            'recipient' => ['chat_type' => 'chat', 'chat_id' => $chatId],
+        ];
+        $rawResponse = ['messages' => [$messageData]];
+        $expectedMessages = [Message::fromArray($messageData)];
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', '/messages', $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessages')
+            ->with($rawResponse)
+            ->willReturn($expectedMessages);
+
+        $result = $this->api->getMessages($chatId, $messageIds, $from, $to, $count);
+
+        $this->assertIsArray($result);
+        $this->assertSame($expectedMessages, $result);
+    }
+
+    #[Test]
+    public function getMessagesReturnsEmptyArrayForEmptyResponse(): void
+    {
+        $chatId = 54321;
+        $rawResponse = ['messages' => []];
+
+        $this->clientMock->expects($this->once())
+            ->method('request')
+            ->with('GET', '/messages', ['chat_id' => $chatId])
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock->expects($this->once())
+            ->method('createMessages')
+            ->with($rawResponse)
+            ->willReturn([]);
+
+        $result = $this->api->getMessages($chatId);
+
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function deleteMessageCallsClientCorrectly(): void
+    {
+        $messageId = 'mid.12345.abcdef';
+        $expectedQuery = ['message_id' => $messageId];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                self::equalTo('DELETE'),
+                self::equalTo('/messages'),
+                self::equalTo($expectedQuery),
+            )
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->deleteMessage($messageId);
+
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function getMessageByIdCallsClientAndFactoryCorrectly(): void
+    {
+        $messageId = 'mid.abcdef.123456';
+        $uri = sprintf('/messages/%s', $messageId);
+
+        $rawResponse = [
+            'timestamp' => 1679000000,
+            'body' => ['mid' => $messageId, 'seq' => 123, 'text' => 'This is a specific message.'],
+            'recipient' => ['chat_type' => 'dialog', 'user_id' => 101],
+        ];
+        $expectedMessage = Message::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('GET'), self::equalTo($uri))
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createMessage')
+            ->with($rawResponse)
+            ->willReturn($expectedMessage);
+
+        $result = $this->api->getMessageById($messageId);
+
+        $this->assertSame($expectedMessage, $result);
+    }
+
+    #[Test]
+    public function pinMessageCallsClientWithCorrectBody(): void
+    {
+        $chatId = 12345;
+        $messageId = 'mid.to.pin';
+        $notify = false;
+        $uri = sprintf('/chats/%d/pin', $chatId);
+
+        $expectedBody = ['message_id' => $messageId, 'notify' => $notify];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                self::equalTo('PUT'),
+                self::equalTo($uri),
+                self::equalTo([]),
+                self::equalTo($expectedBody),
+            )
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->pinMessage($chatId, $messageId, $notify);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function pinMessageUsesDefaultNotificationValue(): void
+    {
+        $chatId = 54321;
+        $messageId = 'mid.another.pin';
+        $uri = sprintf('/chats/%d/pin', $chatId);
+
+        $expectedBody = ['message_id' => $messageId, 'notify' => true];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('PUT', $uri, [], $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->method('createResult')
+            ->willReturn($expectedResult);
+
+        $this->api->pinMessage($chatId, $messageId);
+    }
 }

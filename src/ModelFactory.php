@@ -102,6 +102,20 @@ class ModelFactory
     }
 
     /**
+     * List of messages.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return Message[]
+     */
+    public function createMessages(array $data): array
+    {
+        return isset($data['messages']) && is_array($data['messages'])
+            ? array_map([$this, 'createMessage'], $data['messages'])
+            : [];
+    }
+
+    /**
      * Endpoint you should upload to your binaries.
      *
      * @param array<string, mixed> $data

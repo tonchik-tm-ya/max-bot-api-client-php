@@ -50,6 +50,7 @@ class Api
     private const string METHOD_POST = 'POST';
     private const string METHOD_DELETE = 'DELETE';
 //    private const string METHOD_PATCH = 'PATCH';
+    private const string METHOD_PUT = 'PUT';
 
     private const string ACTION_ME = '/me';
     private const string ACTION_SUBSCRIPTIONS = '/subscriptions';
@@ -653,7 +654,7 @@ class Api
      *
      * @param int $chatId Chat identifier to leave from.
      *
-     * @return Result A simple success/fail result.
+     * @return Result
      * @throws ClientApiException
      * @throws NetworkException
      * @throws ReflectionException
@@ -665,6 +666,116 @@ class Api
             $this->client->request(
                 self::METHOD_DELETE,
                 sprintf(self::ACTION_CHATS_MEMBERS_ME, $chatId),
+            )
+        );
+    }
+
+    /**
+     * Returns messages in a chat. Messages are traversed in reverse chronological order.
+     *
+     * @param int $chatId Identifier of the chat to get messages from.
+     * @param string[]|null $messageIds A comma-separated list of message IDs to retrieve.
+     * @param int|null $from Start time (Unix timestamp in ms) for the requested messages.
+     * @param int|null $to End time (Unix timestamp in ms) for the requested messages.
+     * @param int|null $count Maximum amount of messages in the response (1-100, default 50).
+     *
+     * @return Message[]
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getMessages(
+        int $chatId,
+        ?array $messageIds = null,
+        ?int $from = null,
+        ?int $to = null,
+        ?int $count = null,
+    ): array {
+        $query = [
+            'chat_id' => $chatId,
+            'message_ids' => $messageIds !== null ? implode(',', $messageIds) : null,
+            'from' => $from,
+            'to' => $to,
+            'count' => $count,
+        ];
+
+        $response = $this->client->request(
+            self::METHOD_GET,
+            self::ACTION_MESSAGES,
+            array_filter($query, fn ($value) => $value !== null)
+        );
+
+        return $this->modelFactory->createMessages($response);
+    }
+
+    /**
+     * Deletes a message in a dialog or in a chat if the bot has permission to delete messages.
+     *
+     * @param string $messageId Identifier of the message to be deleted.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function deleteMessage(string $messageId): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                self::ACTION_MESSAGES,
+                ['message_id' => $messageId],
+            )
+        );
+    }
+
+    /**
+     * Returns a single message by its identifier.
+     *
+     * @param string $messageId Message identifier (`mid`) to get.
+     *
+     * @return Message
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getMessageById(string $messageId): Message
+    {
+        return $this->modelFactory->createMessage(
+            $this->client->request(
+                self::METHOD_GET,
+                self::ACTION_MESSAGES . '/' . $messageId,
+            )
+        );
+    }
+
+    /**
+     * Pins a message in a chat or channel.
+     *
+     * @param int $chatId Chat identifier where the message should be pinned.
+     * @param string $messageId Identifier of the message to pin.
+     * @param bool $notify If true, participants will be notified with a system message.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function pinMessage(int $chatId, string $messageId, bool $notify = true): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_PUT,
+                sprintf(self::ACTION_CHATS_PIN, $chatId),
+                [],
+                [
+                    'message_id' => $messageId,
+                    'notify' => $notify,
+                ]
             )
         );
     }

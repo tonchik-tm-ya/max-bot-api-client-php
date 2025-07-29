@@ -386,4 +386,37 @@ final class ModelFactoryTest extends TestCase
         $this->assertSame(ChatAdminPermission::Write, $chatMember->permissions[1]);
         $this->assertEquals($rawData, $chatMember->toArray());
     }
+
+    #[Test]
+    public function createMessagesReturnsArrayOfMessageObjects(): void
+    {
+        $data = [
+            'messages' => [
+                [
+                    'timestamp' => 1,
+                    'body' => ['mid' => 'mid.1', 'seq' => 1],
+                    'recipient' => ['chat_type' => 'chat', 'chat_id' => 123],
+                ],
+                [
+                    'timestamp' => 2,
+                    'body' => ['mid' => 'mid.2', 'seq' => 2],
+                    'recipient' => ['chat_type' => 'chat', 'chat_id' => 123],
+                ],
+            ],
+        ];
+
+        $messages = $this->factory->createMessages($data);
+
+        $this->assertIsArray($messages);
+        $this->assertCount(2, $messages);
+        $this->assertInstanceOf(Message::class, $messages[0]);
+        $this->assertSame('mid.1', $messages[0]->body->mid);
+    }
+
+    #[Test]
+    public function createMessagesHandlesEmptyOrMissingKey(): void
+    {
+        $this->assertEmpty($this->factory->createMessages(['messages' => []]));
+        $this->assertEmpty($this->factory->createMessages([]));
+    }
 }

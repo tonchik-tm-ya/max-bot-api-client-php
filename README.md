@@ -37,7 +37,7 @@
 - [x] `DELETE /chats/{chatId}` (`deleteChat`) — *Удаление чата.*
 - [x] `POST /chats/{chatId}/actions` (`sendAction`) — *Отправка действия в чат (например, "печатает...").*
 - [x] `GET /chats/{chatId}/pin` (`getPinnedMessage`) — *Получение закрепленного сообщения.*
-- [ ] `PUT /chats/{chatId}/pin` (`pinMessage`) — *Закрепление сообщения.*
+- [x] `PUT /chats/{chatId}/pin` (`pinMessage`) — *Закрепление сообщения.*
 - [x] `DELETE /chats/{chatId}/pin` (`unpinMessage`) — *Открепление сообщения.*
 - [x] `GET /chats/{chatId}/members/me` (`getMembership`) — *Получение информации о членстве бота в чате.*
 - [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) — *Выход бота из чата.*
@@ -61,11 +61,11 @@
 
 #### Messages
 
-- [ ] `GET /messages` (`getMessages`) — *Получение списка сообщений из чата.*
+- [x] `GET /messages` (`getMessages`) — *Получение списка сообщений из чата.*
 - [x] `POST /messages` (`sendMessage`) — *Отправка сообщения.*
 - [ ] `PUT /messages` (`editMessage`) — *Редактирование сообщения.*
-- [ ] `DELETE /messages` (`deleteMessage`) — *Удаление сообщения.*
-- [ ] `GET /messages/{messageId}` (`getMessageById`) — *Получение сообщения по ID.*
+- [x] `DELETE /messages` (`deleteMessage`) — *Удаление сообщения.*
+- [x] `GET /messages/{messageId}` (`getMessageById`) — *Получение сообщения по ID.*
 - [ ] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) — *Получение детальной информации о видео.*
 - [ ] `POST /answers` (`answerOnCallback`) — *Ответ на нажатие callback-кнопки.*
 
