@@ -38,6 +38,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
+use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
@@ -105,6 +106,7 @@ use RuntimeException;
 #[UsesClass(ChatList::class)]
 #[UsesClass(ChatMember::class)]
 #[UsesClass(ArrayOf::class)]
+#[UsesClass(ChatMembersList::class)]
 final class ApiTest extends TestCase
 {
     use PHPMock;
@@ -1678,5 +1680,200 @@ final class ApiTest extends TestCase
             ->willReturn($expectedResult);
 
         $this->api->pinMessage($chatId, $messageId);
+    }
+
+    #[Test]
+    public function getAdminsReturnsChatMembersList(): void
+    {
+        $chatId = 98765;
+        $uri = sprintf('/chats/%d/members/admins', $chatId);
+
+        $rawResponse = [
+            'members' => [
+                [
+                    'user_id' => 1,
+                    'first_name' => 'AdminBot',
+                    'is_bot' => true,
+                    'last_activity_time' => 1,
+                    'last_access_time' => 2,
+                    'is_owner' => false,
+                    'is_admin' => true,
+                    'join_time' => 0
+                ]
+            ],
+            'marker' => null
+        ];
+        $expectedList = ChatMembersList::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChatMembersList')
+            ->with($rawResponse)
+            ->willReturn($expectedList);
+
+        $result = $this->api->getAdmins($chatId);
+
+        $this->assertSame($expectedList, $result);
+        $this->assertCount(1, $result->members);
+        $this->assertTrue($result->members[0]->isAdmin);
+    }
+
+    #[Test]
+    public function getMembersWithPaginationCallsClientCorrectly(): void
+    {
+        $chatId = 12345;
+        $count = 50;
+        $marker = 98765;
+        $uri = sprintf('/chats/%d/members', $chatId);
+        $expectedQuery = ['count' => $count, 'marker' => $marker];
+
+        $rawResponse = ['members' => [], 'marker' => 123];
+        $expectedList = new ChatMembersList([], 123);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri, $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChatMembersList')
+            ->with($rawResponse)
+            ->willReturn($expectedList);
+
+        $result = $this->api->getMembers($chatId, null, $marker, $count);
+
+        $this->assertSame($expectedList, $result);
+    }
+
+    #[Test]
+    public function getMembersWithUserIdsCallsClientCorrectly(): void
+    {
+        $chatId = 54321;
+        $userIds = [101, 202, 303];
+        $uri = sprintf('/chats/%d/members', $chatId);
+        $expectedQuery = ['user_ids' => '101,202,303'];
+
+        $rawResponse = [
+            'members' => [
+                [
+                    'user_id' => 101,
+                    'first_name' => 'User1',
+                    'is_bot' => false,
+                    'last_activity_time' => 1,
+                    'last_access_time' => 2,
+                    'is_owner' => false,
+                    'is_admin' => false,
+                    'join_time' => 0,
+                ]
+            ],
+            'marker' => null,
+        ];
+        $expectedList = ChatMembersList::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri, $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChatMembersList')
+            ->with($rawResponse)
+            ->willReturn($expectedList);
+
+        $result = $this->api->getMembers($chatId, $userIds);
+
+        $this->assertSame($expectedList, $result);
+    }
+
+    #[Test]
+    public function deleteAdminsCallsClientCorrectly(): void
+    {
+        $chatId = 12345;
+        $userId = 987;
+        $uri = sprintf('/chats/%d/members/admins/%d', $chatId, $userId);
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(self::equalTo('DELETE'), self::equalTo($uri))
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->deleteAdmins($chatId, $userId);
+
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function removeMemberCallsClientWithDefaultBlockValue(): void
+    {
+        $chatId = 12345;
+        $userId = 678;
+        $uri = sprintf('/chats/%d/members', $chatId);
+        $expectedQuery = ['user_id' => $userId];
+
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('DELETE', $uri, $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->removeMember($chatId, $userId);
+
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function removeMemberCallsClientWithBlockTrue(): void
+    {
+        $chatId = 54321;
+        $userId = 910;
+        $uri = sprintf('/chats/%d/members', $chatId);
+        $expectedQuery = ['user_id' => $userId, 'block' => true];
+
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('DELETE', $uri, $expectedQuery)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->removeMember($chatId, $userId, true);
+
+        $this->assertSame($expectedResult, $result);
     }
 }

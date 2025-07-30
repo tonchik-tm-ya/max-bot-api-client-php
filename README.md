@@ -41,12 +41,12 @@
 - [x] `DELETE /chats/{chatId}/pin` (`unpinMessage`) — *Открепление сообщения.*
 - [x] `GET /chats/{chatId}/members/me` (`getMembership`) — *Получение информации о членстве бота в чате.*
 - [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) — *Выход бота из чата.*
-- [ ] `GET /chats/{chatId}/members/admins` (`getAdmins`) — *Получение администраторов чата.*
+- [x] `GET /chats/{chatId}/members/admins` (`getAdmins`) — *Получение администраторов чата.*
 - [ ] `POST /chats/{chatId}/members/admins` (`postAdmins`) — *Назначение администраторов чата.*
-- [ ] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) — *Снятие прав администратора.*
-- [ ] `GET /chats/{chatId}/members` (`getMembers`) — *Получение участников чата.*
+- [x] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) — *Снятие прав администратора.*
+- [x] `GET /chats/{chatId}/members` (`getMembers`) — *Получение участников чата.*
 - [ ] `POST /chats/{chatId}/members` (`addMembers`) — *Добавление участников в чат.*
-- [ ] `DELETE /chats/{chatId}/members` (`removeMember`) — *Удаление участника из чата.*
+- [x] `DELETE /chats/{chatId}/members` (`removeMember`) — *Удаление участника из чата.*
 
 #### Subscriptions
 
@@ -71,4 +71,4 @@
 
 ## Лицензия
 
-Данная библиотека распространяется по лицензии MIT - подробности см. в файле [LICENSE](LICENSE).
+Данная библиотека распространяется под лицензией MIT - подробности см. в файле [LICENSE](LICENSE).

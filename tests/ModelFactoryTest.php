@@ -13,6 +13,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
+use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
 use BushlanovDev\MaxMessengerBot\Models\Image;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
@@ -53,6 +54,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(MessageChatCreatedUpdate::class)]
 #[UsesClass(ChatList::class)]
 #[UsesClass(ChatMember::class)]
+#[UsesClass(ChatMembersList::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -418,5 +420,64 @@ final class ModelFactoryTest extends TestCase
     {
         $this->assertEmpty($this->factory->createMessages(['messages' => []]));
         $this->assertEmpty($this->factory->createMessages([]));
+    }
+
+    #[Test]
+    public function createChatMembersListSuccessfully(): void
+    {
+        $rawData = [
+            'members' => [
+                [
+                    'user_id' => 101,
+                    'first_name' => 'Admin1',
+                    'is_bot' => false,
+                    'last_activity_time' => 1,
+                    'last_access_time' => 2,
+                    'is_owner' => true,
+                    'is_admin' => true,
+                    'join_time' => 0,
+                ],
+                [
+                    'user_id' => 102,
+                    'first_name' => 'Admin2',
+                    'is_bot' => true,
+                    'last_activity_time' => 3,
+                    'last_access_time' => 4,
+                    'is_owner' => false,
+                    'is_admin' => true,
+                    'join_time' => 5,
+                ],
+            ],
+            'marker' => 98765,
+        ];
+
+        $list = $this->factory->createChatMembersList($rawData);
+
+        $this->assertInstanceOf(ChatMembersList::class, $list);
+        $this->assertCount(2, $list->members);
+        $this->assertSame(98765, $list->marker);
+
+        $this->assertInstanceOf(ChatMember::class, $list->members[0]);
+        $this->assertSame(101, $list->members[0]->userId);
+        $this->assertTrue($list->members[0]->isOwner);
+
+        $this->assertInstanceOf(ChatMember::class, $list->members[1]);
+        $this->assertSame(102, $list->members[1]->userId);
+        $this->assertTrue($list->members[1]->isBot);
+    }
+
+    #[Test]
+    public function createChatMembersListHandlesEmptyResponse(): void
+    {
+        $rawData = [
+            'members' => [],
+            'marker' => null,
+        ];
+
+        $list = $this->factory->createChatMembersList($rawData);
+
+        $this->assertInstanceOf(ChatMembersList::class, $list);
+        $this->assertEmpty($list->members);
+        $this->assertNull($list->marker);
     }
 }

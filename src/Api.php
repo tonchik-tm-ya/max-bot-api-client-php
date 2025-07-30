@@ -22,6 +22,7 @@ use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
+use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -60,6 +61,9 @@ class Api
     private const string ACTION_CHATS_ACTIONS = '/chats/%d/actions';
     private const string ACTION_CHATS_PIN = '/chats/%d/pin';
     private const string ACTION_CHATS_MEMBERS_ME = '/chats/%d/members/me';
+    private const string ACTION_CHATS_MEMBERS_ADMINS = '/chats/%d/members/admins';
+    private const string ACTION_CHATS_MEMBERS_ADMINS_ID = '/chats/%d/members/admins/%d';
+    private const string ACTION_CHATS_MEMBERS = '/chats/%d/members';
     private const string ACTION_UPDATES = '/updates';
 
     private readonly ClientApiInterface $client;
@@ -703,7 +707,7 @@ class Api
         $response = $this->client->request(
             self::METHOD_GET,
             self::ACTION_MESSAGES,
-            array_filter($query, fn ($value) => $value !== null)
+            array_filter($query, fn($value) => $value !== null),
         );
 
         return $this->modelFactory->createMessages($response);
@@ -776,6 +780,113 @@ class Api
                     'message_id' => $messageId,
                     'notify' => $notify,
                 ]
+            )
+        );
+    }
+
+    /**
+     * Returns all chat administrators. The bot must be an administrator in the requested chat.
+     *
+     * @param int $chatId Chat identifier.
+     *
+     * @return ChatMembersList
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getAdmins(int $chatId): ChatMembersList
+    {
+        return $this->modelFactory->createChatMembersList(
+            $this->client->request(
+                self::METHOD_GET,
+                sprintf(self::ACTION_CHATS_MEMBERS_ADMINS, $chatId),
+            )
+        );
+    }
+
+    /**
+     * Returns a paginated list of users who are participating in a chat.
+     *
+     * @param int $chatId The identifier of the chat.
+     * @param int[]|null $userIds A list of user identifiers to get their specific membership.
+     *                            When this parameter is passed, `count` and `marker` are ignored.
+     * @param int|null $marker The pagination marker to get the next page of members.
+     * @param int|null $count The number of members to return (1-100, default is 20).
+     *
+     * @return ChatMembersList
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getMembers(
+        int $chatId,
+        ?array $userIds = null,
+        ?int $marker = null,
+        ?int $count = null
+    ): ChatMembersList {
+        $query = [
+            'user_ids' => $userIds !== null ? implode(',', $userIds) : null,
+            'marker' => $marker,
+            'count' => $count,
+        ];
+
+        return $this->modelFactory->createChatMembersList(
+            $this->client->request(
+                self::METHOD_GET,
+                sprintf(self::ACTION_CHATS_MEMBERS, $chatId),
+                array_filter($query, fn($value) => $value !== null),
+            )
+        );
+    }
+
+    /**
+     * Revokes admin rights from a user in the chat.
+     *
+     * @param int $chatId The identifier of the chat.
+     * @param int $userId The identifier of the user to revoke admin rights from.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function deleteAdmins(int $chatId, int $userId): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                sprintf(self::ACTION_CHATS_MEMBERS_ADMINS_ID, $chatId, $userId),
+            )
+        );
+    }
+
+    /**
+     * Removes a member from a chat. The bot may require additional permissions.
+     *
+     * @param int $chatId The identifier of the chat.
+     * @param int $userId The identifier of the user to remove.
+     * @param bool $block Set to true if the user should also be blocked in the chat.
+     *                    Applicable only for chats with a public or private link.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function removeMember(int $chatId, int $userId, bool $block = false): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_DELETE,
+                sprintf(self::ACTION_CHATS_MEMBERS, $chatId),
+                [
+                    'user_id' => $userId,
+                    'block' => $block,
+                ],
             )
         );
     }
