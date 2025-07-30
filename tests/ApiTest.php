@@ -1827,7 +1827,7 @@ final class ApiTest extends TestCase
         $chatId = 12345;
         $userId = 678;
         $uri = sprintf('/chats/%d/members', $chatId);
-        $expectedQuery = ['user_id' => $userId];
+        $expectedQuery = ['user_id' => $userId, 'block' => false];
 
         $rawResponse = ['success' => true];
         $expectedResult = new Result(true, null);
