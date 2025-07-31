@@ -20,6 +20,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequ
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatAdmin;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
@@ -65,6 +66,7 @@ class Api
     private const string ACTION_CHATS_MEMBERS_ADMINS_ID = '/chats/%d/members/admins/%d';
     private const string ACTION_CHATS_MEMBERS = '/chats/%d/members';
     private const string ACTION_UPDATES = '/updates';
+    private const string ACTION_ANSWERS = '/answers';
 
     private readonly ClientApiInterface $client;
 
@@ -348,7 +350,7 @@ class Api
     }
 
     /**
-     * Sends a message to a chat.
+     * Sends a message to a chat or user.
      *
      * @param int|null $userId Fill this parameter if you want to send message to user.
      * @param int|null $chatId Fill this if you send message to chat.
@@ -381,25 +383,74 @@ class Api
             'disable_link_preview' => $disableLinkPreview,
         ];
 
-        $body = [
-            'text' => $text,
-            'format' => $format?->value,
-            'notify' => $notify,
-            'link' => $link,
-            'attachments' => $attachments !== null ? array_map(
-                fn(AbstractModel $attachment) => $attachment->toArray(),
-                $attachments,
-            ) : null,
-        ];
-
         $response = $this->client->request(
             self::METHOD_POST,
             self::ACTION_MESSAGES,
             array_filter($query, fn($item) => null !== $item),
-            array_filter($body, fn($item) => null !== $item),
+            $this->buildNewMessageBody($text, $attachments, $format, $link, $notify),
         );
 
         return $this->modelFactory->createMessage($response['message']);
+    }
+
+    /**
+     * Sends a message to a user.
+     *
+     * @param int|null $userId Fill this parameter if you want to send message to user.
+     * @param string|null $text Message text.
+     * @param AbstractAttachmentRequest[]|null $attachments Message attachments.
+     * @param MessageFormat|null $format Message format.
+     * @param MessageLink|null $link Link to message.
+     * @param bool $notify If false, chat participants would not be notified.
+     * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
+     *
+     * @return Message
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     * @codeCoverageIgnore
+     */
+    public function sendUserMessage(
+        ?int $userId = null,
+        ?string $text = null,
+        ?array $attachments = null,
+        ?MessageFormat $format = null,
+        ?MessageLink $link = null,
+        bool $notify = true,
+        bool $disableLinkPreview = false,
+    ): Message {
+        return $this->sendMessage($userId, null, $text, $attachments, $format, $link, $notify, $disableLinkPreview);
+    }
+
+    /**
+     * Sends a message to a chat.
+     *
+     * @param int|null $chatId Fill this if you send message to chat.
+     * @param string|null $text Message text.
+     * @param AbstractAttachmentRequest[]|null $attachments Message attachments.
+     * @param MessageFormat|null $format Message format.
+     * @param MessageLink|null $link Link to message.
+     * @param bool $notify If false, chat participants would not be notified.
+     * @param bool $disableLinkPreview If false, server will not generate media preview for links in text.
+     *
+     * @return Message
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     * @codeCoverageIgnore
+     */
+    public function sendChatMessage(
+        ?int $chatId = null,
+        ?string $text = null,
+        ?array $attachments = null,
+        ?MessageFormat $format = null,
+        ?MessageLink $link = null,
+        bool $notify = true,
+        bool $disableLinkPreview = false,
+    ): Message {
+        return $this->sendMessage(null, $chatId, $text, $attachments, $format, $link, $notify, $disableLinkPreview);
     }
 
     /**
@@ -779,7 +830,7 @@ class Api
                 [
                     'message_id' => $messageId,
                     'notify' => $notify,
-                ]
+                ],
             )
         );
     }
@@ -877,7 +928,7 @@ class Api
      * @throws ReflectionException
      * @throws SerializationException
      */
-    public function removeMember(int $chatId, int $userId, bool $block = false): Result
+    public function deleteMember(int $chatId, int $userId, bool $block = false): Result
     {
         return $this->modelFactory->createResult(
             $this->client->request(
@@ -889,5 +940,164 @@ class Api
                 ],
             )
         );
+    }
+
+    /**
+     * Sets the administrators for a chat.
+     *
+     * @param int $chatId The identifier of the chat.
+     * @param ChatAdmin[] $admins An array of ChatAdmin objects representing the users and their permissions.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function addAdmins(int $chatId, array $admins): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_POST,
+                sprintf(self::ACTION_CHATS_MEMBERS_ADMINS, $chatId),
+                [],
+                ['admins' => array_map(fn(ChatAdmin $admin) => $admin->toArray(), $admins)],
+            )
+        );
+    }
+
+    /**
+     * Adds members to a chat. The bot may require additional permissions.
+     *
+     * @param int $chatId The identifier of the chat.
+     * @param int[] $userIds An array of user identifiers to add to the chat.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function addMembers(int $chatId, array $userIds): Result
+    {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_POST,
+                sprintf(self::ACTION_CHATS_MEMBERS, $chatId),
+                [],
+                ['user_ids' => $userIds],
+            )
+        );
+    }
+
+    /**
+     * Sends an answer to a callback query. This should be called after a user clicks an inline button.
+     *
+     * @param string $callbackId The identifier of the callback query.
+     * @param string|null $notification A short text notification to show to the user.
+     * @param string|null $text If provided, the original message will be edited with this text.
+     * @param AbstractAttachmentRequest[]|null $attachments New attachments for the edited message.
+     * @param MessageLink|null $link New link for the edited message.
+     * @param MessageFormat|null $format Formatting for the new message text.
+     * @param bool $notify Notification setting for the edited message.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function answerOnCallback(
+        string $callbackId,
+        ?string $notification = null,
+        ?string $text = null,
+        ?array $attachments = null,
+        ?MessageLink $link = null,
+        ?MessageFormat $format = null,
+        bool $notify = true,
+    ): Result {
+        $answerBody = ['notification' => $notification];
+        if ($text !== null || $attachments !== null || $link !== null) {
+            $answerBody['message'] = $this->buildNewMessageBody($text, $attachments, $format, $link, $notify);
+        }
+
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_POST,
+                self::ACTION_ANSWERS,
+                ['callback_id' => $callbackId],
+                array_filter($answerBody, fn($value) => $value !== null)
+            )
+        );
+    }
+
+    /**
+     * Edits a message that was previously sent by the bot.
+     * Note on attachments:
+     * - To leave attachments unchanged, pass `null` (default).
+     * - To remove all attachments, pass an empty array `[]`.
+     *
+     * @param string $messageId The identifier of the message to edit.
+     * @param string|null $text New message text.
+     * @param AbstractAttachmentRequest[]|null $attachments New message attachments.
+     * @param MessageFormat|null $format Formatting for the new message text.
+     * @param MessageLink|null $link New link for the edited message.
+     * @param bool $notify Notification setting for the edited message.
+     *
+     * @return Result
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function editMessage(
+        string $messageId,
+        ?string $text = null,
+        ?array $attachments = null,
+        ?MessageFormat $format = null,
+        ?MessageLink $link = null,
+        bool $notify = true,
+    ): Result {
+        return $this->modelFactory->createResult(
+            $this->client->request(
+                self::METHOD_PUT,
+                self::ACTION_MESSAGES,
+                ['message_id' => $messageId],
+                $this->buildNewMessageBody($text, $attachments, $format, $link, $notify),
+            )
+        );
+    }
+
+    /**
+     * A helper to build the 'NewMessageBody' array structure consistently.
+     *
+     * @param string|null $text
+     * @param AbstractAttachmentRequest[]|null $attachments
+     * @param MessageFormat|null $format
+     * @param MessageLink|null $link
+     * @param bool $notify
+     *
+     * @return array<string, mixed>
+     * @throws ReflectionException
+     */
+    private function buildNewMessageBody(
+        ?string $text,
+        ?array $attachments,
+        ?MessageFormat $format,
+        ?MessageLink $link,
+        bool $notify,
+    ): array {
+        $body = [
+            'text' => $text,
+            'format' => $format?->value,
+            'notify' => $notify,
+            'link' => $link,
+            'attachments' => $attachments !== null ? array_map(
+                fn(AbstractModel $attachment) => $attachment->toArray(),
+                $attachments,
+            ) : null,
+        ];
+
+        return array_filter($body, fn($item) => $item !== null);
     }
 }

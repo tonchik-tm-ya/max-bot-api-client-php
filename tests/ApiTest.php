@@ -10,6 +10,7 @@ use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
 use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
+use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\SenderAction;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
@@ -36,6 +37,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\StickerAttachmentRe
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
+use BushlanovDev\MaxMessengerBot\Models\ChatAdmin;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
@@ -107,6 +109,7 @@ use RuntimeException;
 #[UsesClass(ChatMember::class)]
 #[UsesClass(ArrayOf::class)]
 #[UsesClass(ChatMembersList::class)]
+#[UsesClass(ChatAdmin::class)]
 final class ApiTest extends TestCase
 {
     use PHPMock;
@@ -1844,7 +1847,7 @@ final class ApiTest extends TestCase
             ->with($rawResponse)
             ->willReturn($expectedResult);
 
-        $result = $this->api->removeMember($chatId, $userId);
+        $result = $this->api->deleteMember($chatId, $userId);
 
         $this->assertSame($expectedResult, $result);
     }
@@ -1872,8 +1875,228 @@ final class ApiTest extends TestCase
             ->with($rawResponse)
             ->willReturn($expectedResult);
 
-        $result = $this->api->removeMember($chatId, $userId, true);
+        $result = $this->api->deleteMember($chatId, $userId, true);
 
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function postAdminsCallsClientWithCorrectBody(): void
+    {
+        $chatId = 12345;
+        $uri = sprintf('/chats/%d/members/admins', $chatId);
+        $admins = [
+            new ChatAdmin(101, [ChatAdminPermission::Write]),
+            new ChatAdmin(202, [ChatAdminPermission::PinMessage]),
+        ];
+
+        $expectedBody = [
+            'admins' => [
+                ['user_id' => 101, 'permissions' => ['write']],
+                ['user_id' => 202, 'permissions' => ['pin_message']],
+            ],
+        ];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', $uri, [], $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->addAdmins($chatId, $admins);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function addMembersCallsClientWithCorrectBody(): void
+    {
+        $chatId = 12345;
+        $userIds = [101, 202, 303];
+        $uri = sprintf('/chats/%d/members', $chatId);
+        $expectedBody = ['user_ids' => $userIds];
+
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with(
+                self::equalTo('POST'),
+                self::equalTo($uri),
+                self::equalTo([]),
+                self::equalTo($expectedBody),
+            )
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->addMembers($chatId, $userIds);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function answerOnCallbackWithNotificationOnly(): void
+    {
+        $callbackId = 'cb.123.abc';
+        $notification = 'Action confirmed!';
+        $expectedQuery = ['callback_id' => $callbackId];
+        $expectedBody = ['notification' => $notification];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/answers', $expectedQuery, $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->answerOnCallback($callbackId, $notification);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function answerOnCallbackWithMessageEdit(): void
+    {
+        $callbackId = 'cb.456.def';
+        $newText = 'Message updated!';
+        $expectedQuery = ['callback_id' => $callbackId];
+        $expectedBody = [
+            'message' => [
+                'text' => $newText,
+                'notify' => true,
+            ],
+        ];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/answers', $expectedQuery, $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->answerOnCallback(callbackId: $callbackId, text: $newText);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function answerOnCallbackWithBothMessageAndNotification(): void
+    {
+        $callbackId = 'cb.789.ghi';
+        $notification = 'Done!';
+        $newText = 'Updated!';
+        $expectedQuery = ['callback_id' => $callbackId];
+        $expectedBody = [
+            'notification' => $notification,
+            'message' => [
+                'text' => $newText,
+                'notify' => true,
+            ],
+        ];
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/answers', $expectedQuery, $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->answerOnCallback(
+            callbackId: $callbackId,
+            notification: $notification,
+            text: $newText
+        );
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function editMessageCallsClientWithCorrectParameters(): void
+    {
+        $messageId = 'mid.123.abc';
+        $newText = 'This is the edited text.';
+        $expectedQuery = ['message_id' => $messageId];
+        $expectedBody = [
+            'text' => $newText,
+            'notify' => true,
+        ];
+
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('PUT', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->editMessage($messageId, $newText);
+        $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function editMessageCanClearAttachmentsWithEmptyArray(): void
+    {
+        $messageId = 'mid.456.def';
+        $expectedQuery = ['message_id' => $messageId];
+        $expectedBody = [
+            'attachments' => [],
+            'notify' => true,
+        ];
+
+        $rawResponse = ['success' => true];
+        $expectedResult = new Result(true, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('PUT', '/messages', $expectedQuery, $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createResult')
+            ->with($rawResponse)
+            ->willReturn($expectedResult);
+
+        $result = $this->api->editMessage($messageId, attachments: []);
         $this->assertSame($expectedResult, $result);
     }
 }
