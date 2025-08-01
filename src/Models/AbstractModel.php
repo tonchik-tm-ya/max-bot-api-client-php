@@ -43,6 +43,65 @@ abstract readonly class AbstractModel
     }
 
     /**
+     * @return array<string, mixed>
+     * @throws ReflectionException
+     */
+    public function toArray(): array
+    {
+        $reflectionClass = new ReflectionClass($this);
+        $properties = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
+        $result = [];
+
+        foreach ($properties as $property) {
+            if (!$property->isInitialized($this)) {
+                continue;
+            }
+
+            $phpPropertyName = $property->getName();
+            $value = $property->getValue($this);
+
+            $jsonKey = self::toSnakeCase($phpPropertyName);
+
+            $result[$jsonKey] = $this->convertValue($value);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $input
+     *
+     * @return string
+     */
+    protected static function toSnakeCase(string $input): string
+    {
+        return strtolower((string)preg_replace('/(?<!^)[A-Z]/', '_$0', $input));
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return mixed
+     * @throws ReflectionException
+     */
+    protected function convertValue(mixed $value): mixed
+    {
+        if ($value instanceof AbstractModel) {
+            return $value->toArray();
+        }
+
+        if (is_array($value)) {
+            return array_map([$this, 'convertValue'], $value);
+        }
+
+        if ($value instanceof BackedEnum) {
+            return $value->value;
+        }
+
+        return $value;
+    }
+
+    /**
      * @param mixed $value
      * @param ReflectionProperty $property
      *
@@ -110,65 +169,6 @@ abstract readonly class AbstractModel
 
         if (is_subclass_of($itemClassName, self::class)) {
             return array_map(fn($item) => $itemClassName::fromArray($item), $value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param string $input
-     *
-     * @return string
-     */
-    private static function toSnakeCase(string $input): string
-    {
-        return strtolower((string)preg_replace('/(?<!^)[A-Z]/', '_$0', $input));
-    }
-
-    /**
-     * @return array<string, mixed>
-     * @throws ReflectionException
-     */
-    public function toArray(): array
-    {
-        $reflectionClass = new ReflectionClass($this);
-        $properties = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
-        $result = [];
-
-        foreach ($properties as $property) {
-            if (!$property->isInitialized($this)) {
-                continue;
-            }
-
-            $phpPropertyName = $property->getName();
-            $value = $property->getValue($this);
-
-            $jsonKey = self::toSnakeCase($phpPropertyName);
-
-            $result[$jsonKey] = $this->convertValue($value);
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param mixed $value
-     *
-     * @return mixed
-     * @throws ReflectionException
-     */
-    private function convertValue(mixed $value): mixed
-    {
-        if ($value instanceof AbstractModel) {
-            return $value->toArray();
-        }
-
-        if (is_array($value)) {
-            return array_map([$this, 'convertValue'], $value);
-        }
-
-        if ($value instanceof BackedEnum) {
-            return $value->value;
         }
 
         return $value;

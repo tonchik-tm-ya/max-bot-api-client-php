@@ -27,6 +27,7 @@ use BushlanovDev\MaxMessengerBot\Models\Updates\MessageRemovedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\UserAddedToChatUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\UserRemovedFromChatUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use LogicException;
 use ReflectionException;
 
@@ -233,5 +234,18 @@ class ModelFactory
     public function createChatMembersList(array $data): ChatMembersList
     {
         return ChatMembersList::fromArray($data);
+    }
+
+    /**
+     * Creates a VideoAttachmentDetails object from raw API data.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return VideoAttachmentDetails
+     * @throws ReflectionException
+     */
+    public function createVideoAttachmentDetails(array $data): VideoAttachmentDetails
+    {
+        return VideoAttachmentDetails::fromArray($data);
     }
 }

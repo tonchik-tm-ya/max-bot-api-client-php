@@ -19,11 +19,13 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\FileAttachmentReque
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\PhotoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\BotPatch;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatAdmin;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
+use BushlanovDev\MaxMessengerBot\Models\ChatPatch;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
@@ -31,6 +33,7 @@ use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
+use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use InvalidArgumentException;
 use LogicException;
 use Psr\Http\Message\ServerRequestInterface;
@@ -51,7 +54,7 @@ class Api
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
     private const string METHOD_DELETE = 'DELETE';
-//    private const string METHOD_PATCH = 'PATCH';
+    private const string METHOD_PATCH = 'PATCH';
     private const string METHOD_PUT = 'PUT';
 
     private const string ACTION_ME = '/me';
@@ -67,6 +70,7 @@ class Api
     private const string ACTION_CHATS_MEMBERS = '/chats/%d/members';
     private const string ACTION_UPDATES = '/updates';
     private const string ACTION_ANSWERS = '/answers';
+    private const string ACTION_VIDEO_DETAILS = '/videos/%s';
 
     private readonly ClientApiInterface $client;
 
@@ -1064,6 +1068,81 @@ class Api
                 self::ACTION_MESSAGES,
                 ['message_id' => $messageId],
                 $this->buildNewMessageBody($text, $attachments, $format, $link, $notify),
+            )
+        );
+    }
+
+    /**
+     * Edits the bot info.
+     *
+     * Example: editBotInfo(new BotPatch(name: 'New Bot Name', description: null));
+     *
+     * @param BotPatch $botPatch
+     *
+     * @return BotInfo
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function editBotInfo(BotPatch $botPatch): BotInfo
+    {
+        return $this->modelFactory->createBotInfo(
+            $this->client->request(
+                self::METHOD_PATCH,
+                self::ACTION_ME,
+                [],
+                $botPatch->toArray(),
+            )
+        );
+    }
+
+    /**
+     * Edits chat info such as title, icon, etc.
+     * Instantiate ChatPatch with named arguments for the fields you want to change.
+     *
+     * Example:
+     * $patch = new ChatPatch(title: 'New Cool Title');
+     * $api->editChat(12345, $patch);
+     *
+     * @param int $chatId The identifier of the chat to edit.
+     * @param ChatPatch $chatPatch An object containing the fields to update.
+     *
+     * @return Chat
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function editChat(int $chatId, ChatPatch $chatPatch): Chat
+    {
+        return $this->modelFactory->createChat(
+            $this->client->request(
+                self::METHOD_PATCH,
+                self::ACTION_CHATS . '/' . $chatId,
+                [],
+                $chatPatch->toArray(),
+            )
+        );
+    }
+
+    /**
+     * Returns detailed information about a video attachment, including playback URLs.
+     *
+     * @param string $videoToken The token of the video attachment.
+     *
+     * @return VideoAttachmentDetails
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws ReflectionException
+     * @throws SerializationException
+     */
+    public function getVideoAttachmentDetails(string $videoToken): VideoAttachmentDetails
+    {
+        return $this->modelFactory->createVideoAttachmentDetails(
+            $this->client->request(
+                self::METHOD_GET,
+                sprintf(self::ACTION_VIDEO_DETAILS, $videoToken),
             )
         );
     }

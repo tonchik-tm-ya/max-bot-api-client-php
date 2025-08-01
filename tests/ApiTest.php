@@ -36,11 +36,13 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\ShareAttachmentRequ
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\StickerAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\VideoAttachmentRequest;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
+use BushlanovDev\MaxMessengerBot\Models\BotPatch;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatAdmin;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
+use BushlanovDev\MaxMessengerBot\Models\ChatPatch;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
@@ -53,6 +55,8 @@ use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use BushlanovDev\MaxMessengerBot\Models\User;
+use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
+use BushlanovDev\MaxMessengerBot\Models\VideoUrls;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
 use GuzzleHttp\Psr7\ServerRequest;
 use InvalidArgumentException;
@@ -110,6 +114,10 @@ use RuntimeException;
 #[UsesClass(ArrayOf::class)]
 #[UsesClass(ChatMembersList::class)]
 #[UsesClass(ChatAdmin::class)]
+#[UsesClass(BotPatch::class)]
+#[UsesClass(ChatPatch::class)]
+#[UsesClass(VideoAttachmentDetails::class)]
+#[UsesClass(VideoUrls::class)]
 final class ApiTest extends TestCase
 {
     use PHPMock;
@@ -2098,5 +2106,110 @@ final class ApiTest extends TestCase
 
         $result = $this->api->editMessage($messageId, attachments: []);
         $this->assertSame($expectedResult, $result);
+    }
+
+    #[Test]
+    public function editBotInfoSendsCorrectPatchBody(): void
+    {
+        $patch = new BotPatch(name: 'New Bot Name', description: null);
+
+        $expectedBody = [
+            'name' => 'New Bot Name',
+            'description' => null,
+        ];
+
+        $rawResponseData = [
+            'user_id' => 123,
+            'first_name' => 'New Bot Name',
+            'is_bot' => true,
+            'last_activity_time' => 1,
+            'description' => null,
+        ];
+        $expectedBotInfo = new BotInfo(123, 'New Bot Name', null, null, true, 1, null, null, null, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('PATCH', '/me', [], $expectedBody)
+            ->willReturn($rawResponseData);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createBotInfo')
+            ->with($rawResponseData)
+            ->willReturn($expectedBotInfo);
+
+        $this->api->editBotInfo($patch);
+    }
+
+    #[Test]
+    public function editChatSendsCorrectPatchBody(): void
+    {
+        $chatId = 12345;
+        $uri = sprintf('/chats/%d', $chatId);
+        $patch = new ChatPatch(title: 'New Chat Title', notify: false);
+
+        $expectedBody = [
+            'title' => 'New Chat Title',
+            'notify' => false,
+        ];
+
+        $rawResponse = [
+            'chat_id' => $chatId,
+            'title' => 'New Chat Title',
+            'type' => 'chat',
+            'status' => 'active',
+            'last_event_time' => 1,
+            'participants_count' => 1,
+            'is_public' => false,
+        ];
+        $expectedChat = Chat::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('PATCH', $uri, [], $expectedBody)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createChat')
+            ->with($rawResponse)
+            ->willReturn($expectedChat);
+
+        $result = $this->api->editChat($chatId, $patch);
+        $this->assertSame($expectedChat, $result);
+    }
+
+    #[Test]
+    public function getVideoAttachmentDetailsCallsClientCorrectly(): void
+    {
+        $videoToken = 'some_video_token_xyz';
+        $uri = sprintf('/videos/%s', $videoToken);
+
+        $rawResponse = [
+            'token' => $videoToken,
+            'width' => 1920,
+            'height' => 1080,
+            'duration' => 120,
+            'urls' => ['mp4_1080' => 'http://example.com/video.mp4'],
+        ];
+        $expectedDetails = VideoAttachmentDetails::fromArray($rawResponse);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', $uri)
+            ->willReturn($rawResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createVideoAttachmentDetails')
+            ->with($rawResponse)
+            ->willReturn($expectedDetails);
+
+        $result = $this->api->getVideoAttachmentDetails($videoToken);
+
+        $this->assertSame($expectedDetails, $result);
     }
 }

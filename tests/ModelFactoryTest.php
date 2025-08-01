@@ -8,6 +8,7 @@ use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
@@ -28,6 +29,8 @@ use BushlanovDev\MaxMessengerBot\Models\Updates\MessageChatCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use BushlanovDev\MaxMessengerBot\Models\User;
+use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
+use BushlanovDev\MaxMessengerBot\Models\VideoUrls;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -55,6 +58,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(ChatList::class)]
 #[UsesClass(ChatMember::class)]
 #[UsesClass(ChatMembersList::class)]
+#[UsesClass(VideoAttachmentDetails::class)]
+#[UsesClass(PhotoAttachmentRequestPayload::class)]
+#[UsesClass(VideoUrls::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -479,5 +485,25 @@ final class ModelFactoryTest extends TestCase
         $this->assertInstanceOf(ChatMembersList::class, $list);
         $this->assertEmpty($list->members);
         $this->assertNull($list->marker);
+    }
+
+    #[Test]
+    public function createVideoAttachmentDetailsSuccessfully(): void
+    {
+        $rawData = [
+            'token' => 'vid_token',
+            'width' => 1280,
+            'height' => 720,
+            'duration' => 60,
+            'urls' => ['mp4_720' => 'http://a.com/720.mp4'],
+            'thumbnail' => ['token' => 'thumb_token'],
+        ];
+
+        $details = $this->factory->createVideoAttachmentDetails($rawData);
+
+        $this->assertInstanceOf(VideoAttachmentDetails::class, $details);
+        $this->assertSame('vid_token', $details->token);
+        $this->assertInstanceOf(VideoUrls::class, $details->urls);
+        $this->assertInstanceOf(PhotoAttachmentRequestPayload::class, $details->thumbnail);
     }
 }

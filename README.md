@@ -2,15 +2,13 @@
 
 [![Actions status](https://github.com/BushlanovDev/max-bot-api-client-php/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
 [![Coverage](https://raw.githubusercontent.com/BushlanovDev/max-bot-api-client-php/refs/heads/master/badge-coverage.svg?v=1)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
+[![Packagist Version](https://img.shields.io/packagist/v/bushlanov-dev/max-bot-api-client-php.svg?style=flat-square)](https://packagist.org/packages/bushlanov-dev/max-bot-api-client-php)
 [![PHP version](https://img.shields.io/badge/php-%3E%3D%208.3-8892BF.svg?style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 
 > [!CAUTION]  
 > На мой взгляд `Max Messenger` является ни чем иным как малварью, созданной для слежки за гражданами РФ. Настоятельно
 > не рекомендую использовать его на реальных устройствах, с настоящим номером телефона, и для личной переписки.
-
-> [!IMPORTANT]  
-> Библиотека в стадии активной разработки.
 
 ## Быстрый старт
 
@@ -81,14 +79,14 @@ $webhookHandler->addHandler(UpdateType::BotStarted, function (BotStartedUpdate $
 #### Bots
 
 - [x] `GET /me` (`getBotInfo`) - *Получение информации о боте.*
-- [ ] `PATCH /me` (`editBotInfo`) - *Редактирование информации о боте.*
+- [x] `PATCH /me` (`editBotInfo`) - *Редактирование информации о боте.*
 
 #### Chats
 
 - [x] `GET /chats` (`getChats`) - *Получение списка всех чатов бота.*
 - [x] `GET /chats/{chatLink}` (`getChatByLink`) - *Получение информации о чате по ссылке.*
 - [x] `GET /chats/{chatId}` (`getChat`) - *Получение информации о чате по ID.*
-- [ ] `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*
+- [x] `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*
 - [x] `DELETE /chats/{chatId}` (`deleteChat`) - *Удаление чата.*
 - [x] `POST /chats/{chatId}/actions` (`sendAction`) - *Отправка действия в чат (например, "печатает...").*
 - [x] `GET /chats/{chatId}/pin` (`getPinnedMessage`) - *Получение закрепленного сообщения.*
@@ -121,7 +119,7 @@ $webhookHandler->addHandler(UpdateType::BotStarted, function (BotStartedUpdate $
 - [x] `PUT /messages` (`editMessage`) - *Редактирование сообщения.*
 - [x] `DELETE /messages` (`deleteMessage`) - *Удаление сообщения.*
 - [x] `GET /messages/{messageId}` (`getMessageById`) - *Получение сообщения по ID.*
-- [ ] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - *Получение детальной информации о видео.*
+- [x] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - *Получение детальной информации о видео.*
 - [x] `POST /answers` (`answerOnCallback`) - *Ответ на нажатие callback-кнопки.*
 
 ## Лицензия
