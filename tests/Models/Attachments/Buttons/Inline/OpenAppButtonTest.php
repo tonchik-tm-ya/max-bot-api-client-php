@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Buttons;
+namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Buttons\Inline;
 
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\OpenAppButton;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\OpenAppButton;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +21,7 @@ final class OpenAppButtonTest extends TestCase
         $expectedArray = [
             'web_app' => 'MyWebApp',
             'contact_id' => 123,
-            'type' => ButtonType::OpenApp->value,
+            'type' => InlineButtonType::OpenApp->value,
             'text' => 'Test Button',
         ];
 

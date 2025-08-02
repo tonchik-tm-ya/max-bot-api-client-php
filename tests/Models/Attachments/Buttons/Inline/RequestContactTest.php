@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Buttons;
+namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Buttons\Inline;
 
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\RequestContactButton;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestContactButton;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +19,7 @@ final class RequestContactTest extends TestCase
         $button = new RequestContactButton('Test Button');
 
         $expectedArray = [
-            'type' => ButtonType::RequestContact->value,
+            'type' => InlineButtonType::RequestContact->value,
             'text' => 'Test Button',
         ];
 

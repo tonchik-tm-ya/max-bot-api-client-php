@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons;
+namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline;
 
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 
 /**
  * Opens the bot's mini-application.
  */
-final readonly class OpenAppButton extends AbstractButton
+final readonly class OpenAppButton extends AbstractInlineButton
 {
     public ?string $webApp;
     public ?int $contactId;
@@ -21,7 +21,7 @@ final readonly class OpenAppButton extends AbstractButton
      */
     public function __construct(string $text, ?string $webApp = null, ?int $contactId = null)
     {
-        parent::__construct(ButtonType::OpenApp, $text);
+        parent::__construct(InlineButtonType::OpenApp, $text);
 
         $this->webApp = $webApp;
         $this->contactId = $contactId;

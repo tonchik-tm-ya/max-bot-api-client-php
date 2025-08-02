@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Requests;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\AbstractButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\AbstractInlineButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
 
 final readonly class InlineKeyboardAttachmentRequest extends AbstractAttachmentRequest
 {
     /**
-     * @param AbstractButton[][] $buttons
+     * @param AbstractInlineButton[][] $buttons
      */
     public function __construct(array $buttons)
     {

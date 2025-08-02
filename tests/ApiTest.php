@@ -9,15 +9,15 @@ use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MessageFormat;
 use BushlanovDev\MaxMessengerBot\Enums\SenderAction;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\CallbackButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\ContactAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\LocationAttachmentRequestPayload;
@@ -391,7 +391,7 @@ final class ApiTest extends TestCase
                     'buttons' => [
                         [
                             [
-                                'type' => ButtonType::Callback->value,
+                                'type' => InlineButtonType::Callback->value,
                                 'text' => 'Press Me',
                                 'payload' => 'payload_123',
                                 'intent' => null,

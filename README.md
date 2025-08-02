@@ -50,14 +50,13 @@ $api->sendMessage(
 
 ```php
 $api->subscribe(
-    new \BushlanovDev\MaxMessengerBot\Models\SubscriptionRequest(
-        'https://example.com/webhook', // URL на который будут приходить хуки
-        'super_secret',                // Секретная фраза для проверки хуков
-        [
-            // Типы хуков которые вы хотите получать (либо ничего не указывать, чтобы получать все)
-            \BushlanovDev\MaxMessengerBot\Enums\UpdateType::MessageCreated,
-        ],
-    ),
+    url: 'https://example.com/webhook', // URL на который будут приходить хуки
+    secret: 'super_secret',             // Секретная фраза для проверки хуков
+    updateTypes: [
+        // Типы хуков которые вы хотите получать (либо ничего не указывать, чтобы получать все)
+        UpdateType::BotStarted,
+        UpdateType::MessageCreated,
+    ],
 );
 ```
 

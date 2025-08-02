@@ -48,8 +48,9 @@ use RuntimeException;
  */
 class Api
 {
-    private const string API_BASE_URL = 'https://botapi.max.ru';
     public const string API_VERSION = '0.0.6';
+
+    private const string API_BASE_URL = 'https://botapi.max.ru';
 
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
@@ -88,7 +89,7 @@ class Api
     public function __construct(
         string $accessToken,
         ?ClientApiInterface $client = null,
-        ?ModelFactory $modelFactory = null
+        ?ModelFactory $modelFactory = null,
     ) {
         if ($client === null) {
             if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
@@ -112,6 +113,25 @@ class Api
 
         $this->client = $client;
         $this->modelFactory = $modelFactory ?? new ModelFactory();
+    }
+
+    /**
+     * Performs a request to the Max Bot API.
+     *
+     * @param string $method The HTTP method (GET, POST, PATCH, etc.).
+     * @param string $uri The API endpoint (e.g., '/me', '/messages').
+     * @param array<string, mixed> $queryParams Query parameters for the request.
+     * @param array<string, mixed> $body The request body.
+     *
+     * @return array<string, mixed> The decoded JSON response as an associative array.
+     * @throws ClientApiException for API-level errors (4xx, 5xx).
+     * @throws NetworkException for network-related issues.
+     * @throws SerializationException for JSON encoding/decoding failures.
+     * @codeCoverageIgnore
+     */
+    public function request(string $method, string $uri, array $queryParams = [], array $body = []): array
+    {
+        return $this->client->request($method, $uri, $queryParams, $body);
     }
 
     /**

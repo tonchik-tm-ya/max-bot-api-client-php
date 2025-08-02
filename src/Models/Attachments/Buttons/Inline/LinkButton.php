@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons;
+namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline;
 
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 
 /**
  * Makes a user to follow a link.
  */
-final readonly class LinkButton extends AbstractButton
+final readonly class LinkButton extends AbstractInlineButton
 {
     public string $url;
 
@@ -19,7 +19,7 @@ final readonly class LinkButton extends AbstractButton
      */
     public function __construct(string $text, string $url)
     {
-        parent::__construct(ButtonType::Link, $text);
+        parent::__construct(InlineButtonType::Link, $text);
 
         $this->url = $url;
     }

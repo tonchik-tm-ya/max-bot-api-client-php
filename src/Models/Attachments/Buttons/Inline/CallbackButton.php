@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons;
+namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline;
 
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\Intent;
 
 /**
  * Sends a notification with payload to a bot (via WebHook or long polling).
  */
-final readonly class CallbackButton extends AbstractButton
+final readonly class CallbackButton extends AbstractInlineButton
 {
     public string $payload;
     public ?Intent $intent;
@@ -22,7 +22,7 @@ final readonly class CallbackButton extends AbstractButton
      */
     public function __construct(string $text, string $payload, ?Intent $intent = null)
     {
-        parent::__construct(ButtonType::Callback, $text);
+        parent::__construct(InlineButtonType::Callback, $text);
 
         $this->payload = $payload;
         $this->intent = $intent;

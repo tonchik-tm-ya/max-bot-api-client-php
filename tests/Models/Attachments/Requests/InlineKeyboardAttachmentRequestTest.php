@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot\Tests\Models\Attachments\Requests;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
-use BushlanovDev\MaxMessengerBot\Enums\ButtonType;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\Intent;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\AbstractButton;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\CallbackButton;
-use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\LinkButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\AbstractInlineButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\CallbackButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\LinkButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\InlineKeyboardAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\InlineKeyboardAttachmentRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(InlineKeyboardAttachmentRequest::class)]
 #[UsesClass(InlineKeyboardAttachmentRequestPayload::class)]
-#[UsesClass(AbstractButton::class)]
+#[UsesClass(AbstractInlineButton::class)]
 #[UsesClass(CallbackButton::class)]
 #[UsesClass(LinkButton::class)]
 final class InlineKeyboardAttachmentRequestTest extends TestCase
@@ -44,7 +44,7 @@ final class InlineKeyboardAttachmentRequestTest extends TestCase
                 'buttons' => [
                     [
                         [
-                            'type' => ButtonType::Callback->value,
+                            'type' => InlineButtonType::Callback->value,
                             'text' => 'Press Me',
                             'payload' => 'cb_payload_1',
                             'intent' => null,
@@ -52,7 +52,7 @@ final class InlineKeyboardAttachmentRequestTest extends TestCase
                     ],
                     [
                         [
-                            'type' => ButtonType::Link->value,
+                            'type' => InlineButtonType::Link->value,
                             'text' => 'Docs',
                             'url' => 'https://dev.max.ru',
                         ],
@@ -82,7 +82,7 @@ final class InlineKeyboardAttachmentRequestTest extends TestCase
                 'buttons' => [
                     [
                         [
-                            'type' => ButtonType::Callback->value,
+                            'type' => InlineButtonType::Callback->value,
                             'text' => 'Positive',
                             'payload' => 'ok',
                             'intent' => Intent::Positive->value,
@@ -90,13 +90,13 @@ final class InlineKeyboardAttachmentRequestTest extends TestCase
                     ],
                     [
                         [
-                            'type' => ButtonType::Callback->value,
+                            'type' => InlineButtonType::Callback->value,
                             'text' => 'Negative',
                             'payload' => 'no',
                             'intent' => Intent::Negative->value,
                         ],
                         [
-                            'type' => ButtonType::Link->value,
+                            'type' => InlineButtonType::Link->value,
                             'text' => 'Help',
                             'url' => 'https://example.com/help',
                         ],

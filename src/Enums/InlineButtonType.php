@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Enums;
 
-enum ButtonType: string
+enum InlineButtonType: string
 {
     case Callback = 'callback';
     case Link = 'link';
@@ -12,4 +12,5 @@ enum ButtonType: string
     case RequestContact = 'request_contact';
     case OpenApp = 'open_app';
     case Message = 'message';
+    case Chat = 'chat';
 }
