@@ -24,7 +24,7 @@ final readonly class Chat extends AbstractModel
      * @param int|null $ownerId Identifier of chat owner. Visible only for chat admins
      * @param string|null $link Link on chat.
      * @param string|null $description Chat description.
-     * @param User|null $dialogWithUser Another user in conversation. For `dialog` type chats only.
+     * @param UserWithPhoto|null $dialogWithUser Another user in conversation. For `dialog` type chats only.
      * @param int|null $messagesCount Messages count in chat. Only for group chats and channels. Not available for dialogs.
      * @param string|null $chatMessageId Identifier of message that contains `chat` button initialized chat.
      * @param Message|null $pinnedMessage Pinned message in chat or channel. Returned only when single chat is requested.
@@ -41,7 +41,7 @@ final readonly class Chat extends AbstractModel
         public ?int $ownerId,
         public ?string $link,
         public ?string $description,
-        public ?User $dialogWithUser,
+        public ?UserWithPhoto $dialogWithUser,
         public ?int $messagesCount,
         public ?string $chatMessageId,
         public ?Message $pinnedMessage,

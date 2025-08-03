@@ -30,9 +30,6 @@ final class BotAddedToChatUpdateTest extends TestCase
                 'last_activity_time' => 1678000000,
                 'last_name' => null,
                 'username' => null,
-                'description' => null,
-                'avatar_url' => null,
-                'full_avatar_url' => null,
             ],
             'is_channel' => false,
         ];

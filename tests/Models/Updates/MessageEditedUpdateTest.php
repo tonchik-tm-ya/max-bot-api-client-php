@@ -8,7 +8,7 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
-use BushlanovDev\MaxMessengerBot\Models\Sender;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageEditedUpdate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
-#[UsesClass(Sender::class)]
+#[UsesClass(User::class)]
 final class MessageEditedUpdateTest extends TestCase
 {
     #[Test]

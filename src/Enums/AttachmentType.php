@@ -16,4 +16,5 @@ enum  AttachmentType: string
     case ReplyKeyboard = 'reply_keyboard';
     case Location = 'location';
     case Share = 'share';
+    case Data = 'data';
 }

@@ -8,7 +8,11 @@ use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\AbstractAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\DataAttachment;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\ShareAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\ShareAttachment;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
@@ -16,11 +20,14 @@ use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
 use BushlanovDev\MaxMessengerBot\Models\Image;
+use BushlanovDev\MaxMessengerBot\Models\Markup\AbstractMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\LinkMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\StrongMarkup;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
-use BushlanovDev\MaxMessengerBot\Models\Sender;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
@@ -28,9 +35,10 @@ use BushlanovDev\MaxMessengerBot\Models\Updates\ChatTitleChangedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageChatCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
-use BushlanovDev\MaxMessengerBot\Models\User;
+use BushlanovDev\MaxMessengerBot\Models\UserWithPhoto;
 use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use BushlanovDev\MaxMessengerBot\Models\VideoUrls;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -45,11 +53,11 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
-#[UsesClass(Sender::class)]
+#[UsesClass(User::class)]
 #[UsesClass(UpdateList::class)]
 #[UsesClass(BotStartedUpdate::class)]
 #[UsesClass(MessageCreatedUpdate::class)]
-#[UsesClass(User::class)]
+#[UsesClass(UserWithPhoto::class)]
 #[UsesClass(UploadEndpoint::class)]
 #[UsesClass(Chat::class)]
 #[UsesClass(Image::class)]
@@ -61,6 +69,13 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(VideoAttachmentDetails::class)]
 #[UsesClass(PhotoAttachmentRequestPayload::class)]
 #[UsesClass(VideoUrls::class)]
+#[UsesClass(AbstractAttachment::class)]
+#[UsesClass(DataAttachment::class)]
+#[UsesClass(ShareAttachment::class)]
+#[UsesClass(ShareAttachmentRequestPayload::class)]
+#[UsesClass(LinkMarkup::class)]
+#[UsesClass(AbstractMarkup::class)]
+#[UsesClass(StrongMarkup::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -205,7 +220,7 @@ final class ModelFactoryTest extends TestCase
         $this->assertInstanceOf(Message::class, $message);
         $this->assertInstanceOf(MessageBody::class, $message->body);
         $this->assertInstanceOf(Recipient::class, $message->recipient);
-        $this->assertInstanceOf(Sender::class, $message->sender);
+        $this->assertInstanceOf(User::class, $message->sender);
     }
 
     #[Test]
@@ -255,7 +270,7 @@ final class ModelFactoryTest extends TestCase
 
         $this->assertInstanceOf(Chat::class, $chat);
         $this->assertInstanceOf(Image::class, $chat->icon);
-        $this->assertInstanceOf(User::class, $chat->dialogWithUser);
+        $this->assertInstanceOf(UserWithPhoto::class, $chat->dialogWithUser);
     }
 
     #[Test]
@@ -505,5 +520,82 @@ final class ModelFactoryTest extends TestCase
         $this->assertSame('vid_token', $details->token);
         $this->assertInstanceOf(VideoUrls::class, $details->urls);
         $this->assertInstanceOf(PhotoAttachmentRequestPayload::class, $details->thumbnail);
+    }
+
+    #[Test]
+    public function createMessageCorrectlyHydratesPolymorphicAttachments(): void
+    {
+        $rawData = [
+            'timestamp' => time(),
+            'body' => [
+                'mid' => 'mid.789.def',
+                'seq' => 102,
+                'text' => 'Message with data attachment',
+                'attachments' => [
+                    ['type' => 'data', 'data' => 'payload_from_reply_button'],
+                    [
+                        'type' => 'share',
+                        'payload' => ['url' => 'http://a.com'],
+                        'title' => 'Test Share',
+                        'description' => null,
+                        'image_url' => null,
+                    ],
+                ],
+                'markup' => null,
+            ],
+            'recipient' => ['chat_type' => 'dialog', 'user_id' => 123],
+
+        ];
+
+        $message = $this->factory->createMessage($rawData);
+
+        $this->assertInstanceOf(Message::class, $message);
+        $this->assertInstanceOf(MessageBody::class, $message->body);
+        $this->assertIsArray($message->body->attachments);
+        $this->assertCount(2, $message->body->attachments);
+
+        $this->assertInstanceOf(DataAttachment::class, $message->body->attachments[0]);
+        $this->assertSame('payload_from_reply_button', $message->body->attachments[0]->data);
+
+        $this->assertInstanceOf(ShareAttachment::class, $message->body->attachments[1]);
+        $this->assertSame('Test Share', $message->body->attachments[1]->title);
+    }
+
+    #[Test]
+    public function createMessageCorrectlyHydratesMarkup(): void
+    {
+        // ... (данные теста)
+        $rawData = [
+            'timestamp' => time(),
+            'body' => [
+                'mid' => 'mid.markup.test',
+                'seq' => 200,
+                'text' => 'Hello world! Visit our site.',
+                'attachments' => null,
+                'markup' => [
+                    ['type' => 'strong', 'from' => 6, 'length' => 5],
+                    ['type' => 'link', 'from' => 18, 'length' => 4, 'url' => 'https://dev.max.ru']
+                ]
+            ],
+            'recipient' => ['chat_type' => 'dialog', 'user_id' => 123],
+        ];
+
+        $message = $this->factory->createMessage($rawData);
+        $markup = $message->body->markup;
+
+        $this->assertInstanceOf(StrongMarkup::class, $markup[0]);
+        $this->assertSame(6, $markup[0]->from);
+
+        $this->assertInstanceOf(LinkMarkup::class, $markup[1]);
+        $this->assertSame('https://dev.max.ru', $markup[1]->url);
+    }
+
+    #[Test]
+    public function createMarkupElementThrowsExceptionForUnknownType(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Unknown or unsupported markup type: brand_new_unsupported_type');
+
+        $this->factory->createMarkupElement(['type' => 'brand_new_unsupported_type']);
     }
 }

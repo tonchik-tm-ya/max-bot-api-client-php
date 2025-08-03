@@ -30,9 +30,6 @@ final class BotRemovedFromChatUpdateTest extends TestCase
                 'is_bot' => false,
                 'last_activity_time' => 1679000000,
                 'last_name' => null,
-                'description' => null,
-                'avatar_url' => null,
-                'full_avatar_url' => null,
             ],
             'is_channel' => false,
         ];

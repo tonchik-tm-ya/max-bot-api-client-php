@@ -19,6 +19,8 @@ final class MessageBodyTest extends TestCase
             'mid' => 'mid.456.xyz',
             'seq' => 101,
             'text' => 'Hello, **world**!',
+            'attachments' => null,
+            'markup' => null,
         ];
 
         $messageBody = MessageBody::fromArray($data);
@@ -41,6 +43,8 @@ final class MessageBodyTest extends TestCase
             'mid' => 'mid.456.xyz',
             'seq' => 101,
             'text' => null,
+            'attachments' => null,
+            'markup' => null,
         ];
 
         $messageBody = MessageBody::fromArray($data);

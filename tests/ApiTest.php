@@ -47,14 +47,13 @@ use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\Result;
-use BushlanovDev\MaxMessengerBot\Models\Sender;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\BotStartedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageCreatedUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
-use BushlanovDev\MaxMessengerBot\Models\User;
 use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use BushlanovDev\MaxMessengerBot\Models\VideoUrls;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
@@ -82,7 +81,7 @@ use RuntimeException;
 #[UsesClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
-#[UsesClass(Sender::class)]
+#[UsesClass(User::class)]
 #[UsesClass(CallbackButton::class)]
 #[UsesClass(InlineKeyboardAttachmentRequestPayload::class)]
 #[UsesClass(InlineKeyboardAttachmentRequest::class)]
@@ -93,7 +92,6 @@ use RuntimeException;
 #[UsesClass(Chat::class)]
 #[UsesClass(UpdateList::class)]
 #[UsesClass(WebhookHandler::class)]
-#[UsesClass(User::class)]
 #[UsesClass(AbstractUpdate::class)]
 #[UsesClass(BotStartedUpdate::class)]
 #[UsesClass(MessageCreatedUpdate::class)]

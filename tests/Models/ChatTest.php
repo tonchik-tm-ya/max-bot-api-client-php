@@ -6,14 +6,14 @@ namespace BushlanovDev\MaxMessengerBot\Tests\Models;
 
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Image;
-use BushlanovDev\MaxMessengerBot\Models\User;
+use BushlanovDev\MaxMessengerBot\Models\UserWithPhoto;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Chat::class)]
 #[CoversClass(Image::class)]
-#[CoversClass(User::class)]
+#[CoversClass(UserWithPhoto::class)]
 final class ChatTest extends TestCase
 {
     #[Test]
@@ -42,6 +42,9 @@ final class ChatTest extends TestCase
                 'username' => 'johndoe',
                 'is_bot' => false,
                 'last_activity_time' => 1678886400000,
+                'description' => 'Description',
+                'avatar_url' => 'https://example.com/avatar.jpg',
+                'full_avatar_url' => 'https://example.com/full_avatar.jpg',
             ],
             'messages_count' => 100,
             'chat_message_id' => 'mid.123',
@@ -62,6 +65,7 @@ final class ChatTest extends TestCase
         $this->assertSame($data['link'], $chat->link);
         $this->assertSame($data['description'], $chat->description);
         $this->assertSame($data['dialog_with_user']['user_id'], $chat->dialogWithUser->userId);
+        $this->assertSame($data['dialog_with_user']['full_avatar_url'], $chat->dialogWithUser->fullAvatarUrl);
         $this->assertSame($data['messages_count'], $chat->messagesCount);
         $this->assertSame($data['chat_message_id'], $chat->chatMessageId);
     }

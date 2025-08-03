@@ -22,25 +22,19 @@ final class UserTest extends TestCase
             'username' => 'johndoe',
             'is_bot' => false,
             'last_activity_time' => 1678886400000,
-            'description' => 'Description',
-            'avatar_url' => 'https://example.com/avatar.jpg',
-            'full_avatar_url' => 'https://example.com/full_avatar.jpg',
         ];
 
-        $user = User::fromArray($data);
+        $sender = User::fromArray($data);
 
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertSame($data['user_id'], $user->userId);
-        $this->assertSame($data['first_name'], $user->firstName);
-        $this->assertSame($data['last_name'], $user->lastName);
-        $this->assertSame($data['username'], $user->username);
-        $this->assertSame($data['is_bot'], $user->isBot);
-        $this->assertSame($data['last_activity_time'], $user->lastActivityTime);
-        $this->assertSame($data['description'], $user->description);
-        $this->assertSame($data['avatar_url'], $user->avatarUrl);
-        $this->assertSame($data['full_avatar_url'], $user->fullAvatarUrl);
+        $this->assertInstanceOf(User::class, $sender);
+        $this->assertSame($data['user_id'], $sender->userId);
+        $this->assertSame($data['first_name'], $sender->firstName);
+        $this->assertSame($data['last_name'], $sender->lastName);
+        $this->assertSame($data['username'], $sender->username);
+        $this->assertSame($data['is_bot'], $sender->isBot);
+        $this->assertSame($data['last_activity_time'], $sender->lastActivityTime);
 
-        $array = $user->toArray();
+        $array = $sender->toArray();
 
         $this->assertIsArray($array);
         $this->assertSame($data, $array);
@@ -56,23 +50,21 @@ final class UserTest extends TestCase
             'last_activity_time' => 1678886400000,
         ];
 
-        $user = User::fromArray($data);
+        $sender = User::fromArray($data);
 
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertSame($data['user_id'], $user->userId);
-        $this->assertSame($data['first_name'], $user->firstName);
-        $this->assertNull($user->lastName);
-        $this->assertNull($user->username);
-        $this->assertSame($data['is_bot'], $user->isBot);
-        $this->assertSame($data['last_activity_time'], $user->lastActivityTime);
-        $this->assertNull($user->description);
-        $this->assertNull($user->avatarUrl);
-        $this->assertNull($user->fullAvatarUrl);
+        $this->assertInstanceOf(User::class, $sender);
+        $this->assertSame($data['user_id'], $sender->userId);
+        $this->assertSame($data['first_name'], $sender->firstName);
+        $this->assertNull($sender->lastName);
+        $this->assertNull($sender->username);
+        $this->assertSame($data['is_bot'], $sender->isBot);
+        $this->assertSame($data['last_activity_time'], $sender->lastActivityTime);
 
-        $array = $user->toArray();
+        $array = $sender->toArray();
 
         $this->assertIsArray($array);
-        $array = array_filter($array, fn($item) => null !== $item);
+        unset($array['last_name']);
+        unset($array['username']);
         $this->assertSame($data, $array);
     }
 }

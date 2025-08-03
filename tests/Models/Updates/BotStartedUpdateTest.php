@@ -29,7 +29,6 @@ final class BotStartedUpdateTest extends TestCase
                 'last_name' => 'Doe',
                 'is_bot' => false,
                 'last_activity_time' => 1678886400000,
-                'avatar_url' => 'https://example.com/avatar.jpg',
             ],
             'user_locale' => 'ru-ru',
         ];
@@ -41,7 +40,6 @@ final class BotStartedUpdateTest extends TestCase
         $this->assertSame(123, $update->user->userId);
         $this->assertSame('John', $update->user->firstName);
         $this->assertSame('Doe', $update->user->lastName);
-        $this->assertSame('https://example.com/avatar.jpg', $update->user->avatarUrl);
         $this->assertSame('ru-ru', $update->userLocale);
     }
 }

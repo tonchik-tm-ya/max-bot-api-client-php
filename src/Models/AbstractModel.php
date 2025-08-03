@@ -118,6 +118,10 @@ abstract readonly class AbstractModel
 
         $typeName = $type->getName();
 
+        if (is_object($value) && is_a($value, $typeName)) {
+            return $value;
+        }
+
         if ($type->isBuiltin()) {
             return match ($typeName) {
                 'int' => (int)$value,
@@ -168,7 +172,10 @@ abstract readonly class AbstractModel
         }
 
         if (is_subclass_of($itemClassName, self::class)) {
-            return array_map(fn($item) => $itemClassName::fromArray($item), $value);
+            return array_map(
+                fn($item) => is_a($item, $itemClassName) ? $item : $itemClassName::fromArray($item),
+                $value,
+            );
         }
 
         return $value;

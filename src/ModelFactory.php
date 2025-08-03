@@ -4,12 +4,27 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot;
 
+use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
+use BushlanovDev\MaxMessengerBot\Enums\MarkupType;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\AbstractAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\DataAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\ShareAttachment;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
 use BushlanovDev\MaxMessengerBot\Models\ChatMember;
 use BushlanovDev\MaxMessengerBot\Models\ChatMembersList;
+use BushlanovDev\MaxMessengerBot\Models\Markup\AbstractMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\EmphasizedMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\HeadingMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\HighlightedMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\LinkMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\MonospacedMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\StrikethroughMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\StrongMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\UnderlineMarkup;
+use BushlanovDev\MaxMessengerBot\Models\Markup\UserMentionMarkup;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
@@ -100,7 +115,40 @@ class ModelFactory
      */
     public function createMessage(array $data): Message
     {
+        if (isset($data['body']['attachments']) && is_array($data['body']['attachments'])) {
+            $data['body']['attachments'] = array_map(
+                [$this, 'createAttachment'],
+                $data['body']['attachments'],
+            );
+        }
+
+        if (isset($data['body']['markup']) && is_array($data['body']['markup'])) {
+            $data['body']['markup'] = array_map(
+                [$this, 'createMarkupElement'],
+                $data['body']['markup'],
+            );
+        }
+
         return Message::fromArray($data);
+    }
+
+    /**
+     * Creates a specific Attachment model based on the 'type' field.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return AbstractAttachment
+     * @throws ReflectionException
+     */
+    public function createAttachment(array $data): AbstractAttachment
+    {
+        return match (AttachmentType::tryFrom($data['type'] ?? '')) {
+            AttachmentType::Data => DataAttachment::fromArray($data),
+            AttachmentType::Share => ShareAttachment::fromArray($data),
+            default => throw new LogicException(
+                'Unknown or unsupported Attachment type: ' . ($data['type'] ?? 'none')
+            ),
+        };
     }
 
     /**
@@ -247,5 +295,31 @@ class ModelFactory
     public function createVideoAttachmentDetails(array $data): VideoAttachmentDetails
     {
         return VideoAttachmentDetails::fromArray($data);
+    }
+
+    /**
+     * Creates a specific Markup model based on the 'type' field.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return AbstractMarkup
+     * @throws ReflectionException
+     */
+    public function createMarkupElement(array $data): AbstractMarkup
+    {
+        return match (MarkupType::tryFrom($data['type'] ?? '')) {
+            MarkupType::Strong => StrongMarkup::fromArray($data),
+            MarkupType::Emphasized => EmphasizedMarkup::fromArray($data),
+            MarkupType::Monospaced => MonospacedMarkup::fromArray($data),
+            MarkupType::Strikethrough => StrikethroughMarkup::fromArray($data),
+            MarkupType::Underline => UnderlineMarkup::fromArray($data),
+            MarkupType::Heading => HeadingMarkup::fromArray($data),
+            MarkupType::Highlighted => HighlightedMarkup::fromArray($data),
+            MarkupType::Link => LinkMarkup::fromArray($data),
+            MarkupType::UserMention => UserMentionMarkup::fromArray($data),
+            default => throw new LogicException(
+                'Unknown or unsupported markup type: ' . ($data['type'] ?? 'none')
+            ),
+        };
     }
 }

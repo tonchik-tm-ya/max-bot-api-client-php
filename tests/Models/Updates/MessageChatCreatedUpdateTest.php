@@ -7,7 +7,7 @@ namespace BushlanovDev\MaxMessengerBot\Tests\Models\Updates;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\Image;
-use BushlanovDev\MaxMessengerBot\Models\User;
+use BushlanovDev\MaxMessengerBot\Models\UserWithPhoto;
 use BushlanovDev\MaxMessengerBot\Models\Updates\MessageChatCreatedUpdate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(MessageChatCreatedUpdate::class)]
 #[UsesClass(Chat::class)]
-#[UsesClass(User::class)]
+#[UsesClass(UserWithPhoto::class)]
 #[UsesClass(Image::class)]
 final class MessageChatCreatedUpdateTest extends TestCase
 {

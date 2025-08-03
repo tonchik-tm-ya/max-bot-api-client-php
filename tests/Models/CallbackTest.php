@@ -29,9 +29,6 @@ final class CallbackTest extends TestCase
                 'last_activity_time' => 1678886000,
                 'last_name' => null,
                 'username' => null,
-                'description' => null,
-                'avatar_url' => null,
-                'full_avatar_url' => null,
             ],
         ];
 

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Tests\Models;
 
+use BushlanovDev\MaxMessengerBot\Models\LinkedMessage;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
-use BushlanovDev\MaxMessengerBot\Models\Sender;
+use BushlanovDev\MaxMessengerBot\Models\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -16,7 +17,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Message::class)]
 #[UsesClass(MessageBody::class)]
 #[UsesClass(Recipient::class)]
-#[UsesClass(Sender::class)]
+#[UsesClass(User::class)]
+#[UsesClass(LinkedMessage::class)]
 final class MessageTest extends TestCase
 {
     #[Test]
@@ -28,6 +30,8 @@ final class MessageTest extends TestCase
                 'mid' => 'mid.456.xyz',
                 'seq' => 101,
                 'text' => 'Hello, **world**!',
+                'attachments' => null,
+                'markup' => null,
             ],
             'recipient' => [
                 'chat_type' => 'dialog',
@@ -43,6 +47,18 @@ final class MessageTest extends TestCase
                 'last_activity_time' => 1678886400000,
             ],
             'url' => 'https://max.ru/message/123',
+            'link' => [
+                'type' => 'reply',
+                'message' => [
+                    'mid' => 'mid.original.123',
+                    'seq' => 10,
+                    'text' => 'Original message',
+                    'attachments' => null,
+                    'markup' => null,
+                ],
+                'sender' => null,
+                'chat_id' => null,
+            ],
         ];
 
         $message = Message::fromArray($data);
@@ -51,12 +67,15 @@ final class MessageTest extends TestCase
         $this->assertSame($data['timestamp'], $message->timestamp);
         $this->assertInstanceOf(MessageBody::class, $message->body);
         $this->assertInstanceOf(Recipient::class, $message->recipient);
-        $this->assertInstanceOf(Sender::class, $message->sender);
+        $this->assertInstanceOf(User::class, $message->sender);
         $this->assertSame($data['url'], $message->url);
 
         $array = $message->toArray();
 
         $this->assertIsArray($array);
         $this->assertSame($data, $array);
+
+        $this->assertInstanceOf(LinkedMessage::class, $message->link);
+        $this->assertSame('mid.original.123', $message->link->message->mid);
     }
 }

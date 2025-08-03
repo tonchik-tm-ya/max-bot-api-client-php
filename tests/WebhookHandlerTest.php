@@ -68,7 +68,9 @@ final class WebhookHandlerTest extends TestCase
         $messageBody = new MessageBody(
             $data['message']['body']['mid'],
             $data['message']['body']['seq'],
-            $data['message']['body']['text']
+            $data['message']['body']['text'],
+            null,
+            null,
         );
         $recipient = new Recipient(
             ChatType::from($data['message']['recipient']['chat_type']),
@@ -80,7 +82,8 @@ final class WebhookHandlerTest extends TestCase
             $messageBody,
             $recipient,
             null,
-            null
+            null,
+            null,
         );
 
         return new MessageCreatedUpdate(
