@@ -137,7 +137,7 @@ abstract readonly class AbstractModel
             return $typeName::from($value);
         }
 
-        if (is_subclass_of($typeName, self::class)) {
+        if (is_subclass_of($typeName, self::class) && is_array($value)) {
             return $typeName::fromArray($value);
         }
 

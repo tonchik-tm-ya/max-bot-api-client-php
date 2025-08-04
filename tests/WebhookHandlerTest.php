@@ -84,6 +84,7 @@ final class WebhookHandlerTest extends TestCase
             null,
             null,
             null,
+            null,
         );
 
         return new MessageCreatedUpdate(

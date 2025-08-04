@@ -7,6 +7,7 @@ namespace BushlanovDev\MaxMessengerBot\Tests\Models;
 use BushlanovDev\MaxMessengerBot\Models\LinkedMessage;
 use BushlanovDev\MaxMessengerBot\Models\Message;
 use BushlanovDev\MaxMessengerBot\Models\MessageBody;
+use BushlanovDev\MaxMessengerBot\Models\MessageStat;
 use BushlanovDev\MaxMessengerBot\Models\Recipient;
 use BushlanovDev\MaxMessengerBot\Models\User;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(Recipient::class)]
 #[UsesClass(User::class)]
 #[UsesClass(LinkedMessage::class)]
+#[UsesClass(MessageStat::class)]
 final class MessageTest extends TestCase
 {
     #[Test]
@@ -59,6 +61,9 @@ final class MessageTest extends TestCase
                 'sender' => null,
                 'chat_id' => null,
             ],
+            'stat' => [
+                'views' => 500,
+            ],
         ];
 
         $message = Message::fromArray($data);
@@ -69,6 +74,8 @@ final class MessageTest extends TestCase
         $this->assertInstanceOf(Recipient::class, $message->recipient);
         $this->assertInstanceOf(User::class, $message->sender);
         $this->assertSame($data['url'], $message->url);
+        $this->assertInstanceOf(MessageStat::class, $message->stat);
+        $this->assertSame(500, $message->stat->views);
 
         $array = $message->toArray();
 

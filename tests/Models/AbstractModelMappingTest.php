@@ -7,9 +7,11 @@ namespace BushlanovDev\MaxMessengerBot\Tests\Models;
 use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
+use DateTimeInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use stdClass;
 
 #[CoversClass(AbstractModel::class)]
@@ -175,6 +177,30 @@ final class AbstractModelMappingTest extends TestCase
 
         $this->assertEquals($expectedArray, $resultArray);
         $this->assertArrayNotHasKey('uninitialized_prop', $resultArray);
+    }
+
+    #[Test]
+    public function castValueReturnsValueAsIsForUnmanagedScalarAssignedToObjectType(): void
+    {
+        $dateString = '2025-08-26';
+
+        $reflectionClass = new ReflectionClass(ModelForUnmanagedType::class);
+        $abstractModelReflection = $reflectionClass->getParentClass();
+        $castValueMethod = $abstractModelReflection->getMethod('castValue');
+        $castValueMethod->setAccessible(true);
+
+        $property = $reflectionClass->getProperty('eventDate');
+
+        $result = $castValueMethod->invoke(null, $dateString, $property);
+
+        $this->assertSame($dateString, $result);
+    }
+}
+
+final readonly class ModelForUnmanagedType extends AbstractModel
+{
+    public function __construct(public DateTimeInterface $eventDate)
+    {
     }
 }
 

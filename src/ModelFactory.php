@@ -5,11 +5,32 @@ declare(strict_types=1);
 namespace BushlanovDev\MaxMessengerBot;
 
 use BushlanovDev\MaxMessengerBot\Enums\AttachmentType;
+use BushlanovDev\MaxMessengerBot\Enums\InlineButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\MarkupType;
+use BushlanovDev\MaxMessengerBot\Enums\ReplyButtonType;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\AbstractAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\AudioAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\AbstractInlineButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\CallbackButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\ChatButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\LinkButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestContactButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestGeoLocationButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\AbstractReplyButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\SendContactButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\SendGeoLocationButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\SendMessageButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\ContactAttachment;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\DataAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\FileAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\InlineKeyboardAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\LocationAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\PhotoAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\ReplyKeyboardAttachment;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\ShareAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\StickerAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\VideoAttachment;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
 use BushlanovDev\MaxMessengerBot\Models\Chat;
 use BushlanovDev\MaxMessengerBot\Models\ChatList;
@@ -142,12 +163,77 @@ class ModelFactory
      */
     public function createAttachment(array $data): AbstractAttachment
     {
-        return match (AttachmentType::tryFrom($data['type'] ?? '')) {
+        $attachmentType = AttachmentType::tryFrom($data['type'] ?? '');
+        if ($attachmentType === AttachmentType::ReplyKeyboard
+            && isset($data['buttons']) && is_array($data['buttons'])) {
+            $data['buttons'] = array_map(
+                fn($rowOfButtons) => array_map([$this, 'createReplyButton'], $rowOfButtons),
+                $data['buttons'],
+            );
+        }
+
+        if ($attachmentType === AttachmentType::InlineKeyboard
+            && isset($data['payload']['buttons']) && is_array($data['payload']['buttons'])) {
+            $data['payload']['buttons'] = array_map(
+                fn($rowOfButtons) => array_map([$this, 'createInlineButton'], $rowOfButtons),
+                $data['payload']['buttons']
+            );
+        }
+
+        return match ($attachmentType) {
             AttachmentType::Data => DataAttachment::fromArray($data),
             AttachmentType::Share => ShareAttachment::fromArray($data),
+            AttachmentType::Image => PhotoAttachment::fromArray($data),
+            AttachmentType::Video => VideoAttachment::fromArray($data),
+            AttachmentType::Audio => AudioAttachment::fromArray($data),
+            AttachmentType::File => FileAttachment::fromArray($data),
+            AttachmentType::Sticker => StickerAttachment::fromArray($data),
+            AttachmentType::Contact => ContactAttachment::fromArray($data),
+            AttachmentType::InlineKeyboard => InlineKeyboardAttachment::fromArray($data),
+            AttachmentType::ReplyKeyboard => ReplyKeyboardAttachment::fromArray($data),
+            AttachmentType::Location => LocationAttachment::fromArray($data),
+            default => throw new LogicException("Unknown or unsupported attachment type: " . ($data['type'] ?? 'none')),
+        };
+    }
+
+    /**
+     * Creates a specific ReplyButton model based on the 'type' field.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return AbstractReplyButton
+     * @throws ReflectionException
+     * @throws LogicException
+     */
+    public function createReplyButton(array $data): AbstractReplyButton
+    {
+        return match (ReplyButtonType::tryFrom($data['type'] ?? '')) {
+            ReplyButtonType::Message => SendMessageButton::fromArray($data),
+            ReplyButtonType::UserContact => SendContactButton::fromArray($data),
+            ReplyButtonType::UserGeoLocation => SendGeoLocationButton::fromArray($data),
             default => throw new LogicException(
-                'Unknown or unsupported Attachment type: ' . ($data['type'] ?? 'none')
+                'Unknown or unsupported reply button type: ' . ($data['type'] ?? 'none')
             ),
+        };
+    }
+
+    /**
+     * Creates a specific InlineButton model based on the 'type' field.
+     *
+     * @param array<string, mixed> $data
+     * @return AbstractInlineButton
+     * @throws ReflectionException
+     * @throws LogicException
+     */
+    public function createInlineButton(array $data): AbstractInlineButton
+    {
+        return match (InlineButtonType::tryFrom($data['type'] ?? '')) {
+            InlineButtonType::Callback => CallbackButton::fromArray($data),
+            InlineButtonType::Link => LinkButton::fromArray($data),
+            InlineButtonType::RequestContact => RequestContactButton::fromArray($data),
+            InlineButtonType::RequestGeoLocation => RequestGeoLocationButton::fromArray($data),
+            InlineButtonType::Chat => ChatButton::fromArray($data),
+            default => throw new LogicException("Unknown or unsupported inline button type: " . ($data['type'] ?? 'none')),
         };
     }
 

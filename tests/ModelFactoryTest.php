@@ -9,9 +9,24 @@ use BushlanovDev\MaxMessengerBot\Enums\ChatAdminPermission;
 use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\AbstractAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\AbstractInlineButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\CallbackButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\ChatButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\LinkButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestContactButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestGeoLocationButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\AbstractReplyButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\SendContactButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\SendMessageButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\DataAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\InlineKeyboardAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\LocationAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\KeyboardPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\PhotoAttachmentRequestPayload;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads\ShareAttachmentRequestPayload;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\PhotoAttachment;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\ReplyKeyboardAttachment;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\ShareAttachment;
 use BushlanovDev\MaxMessengerBot\Models\BotCommand;
 use BushlanovDev\MaxMessengerBot\Models\BotInfo;
@@ -40,6 +55,7 @@ use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use BushlanovDev\MaxMessengerBot\Models\VideoUrls;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -76,6 +92,21 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(LinkMarkup::class)]
 #[UsesClass(AbstractMarkup::class)]
 #[UsesClass(StrongMarkup::class)]
+#[UsesClass(PhotoAttachmentPayload::class)]
+#[UsesClass(PhotoAttachment::class)]
+#[UsesClass(AbstractReplyButton::class)]
+#[UsesClass(SendContactButton::class)]
+#[UsesClass(SendMessageButton::class)]
+#[UsesClass(ReplyKeyboardAttachment::class)]
+#[UsesClass(AbstractInlineButton::class)]
+#[UsesClass(ChatButton::class)]
+#[UsesClass(RequestContactButton::class)]
+#[UsesClass(CallbackButton::class)]
+#[UsesClass(RequestGeoLocationButton::class)]
+#[UsesClass(LinkButton::class)]
+#[UsesClass(LocationAttachment::class)]
+#[UsesClass(InlineKeyboardAttachment::class)]
+#[UsesClass(KeyboardPayload::class)]
 final class ModelFactoryTest extends TestCase
 {
     private ModelFactory $factory;
@@ -540,6 +571,7 @@ final class ModelFactoryTest extends TestCase
                         'description' => null,
                         'image_url' => null,
                     ],
+                    ['type' => 'image', 'payload' => ['photo_id' => 1, 'token' => 't', 'url' => 'u']]
                 ],
                 'markup' => null,
             ],
@@ -548,17 +580,21 @@ final class ModelFactoryTest extends TestCase
         ];
 
         $message = $this->factory->createMessage($rawData);
+        $attachments = $message->body->attachments;
 
         $this->assertInstanceOf(Message::class, $message);
         $this->assertInstanceOf(MessageBody::class, $message->body);
-        $this->assertIsArray($message->body->attachments);
-        $this->assertCount(2, $message->body->attachments);
+        $this->assertIsArray($attachments);
+        $this->assertCount(3, $attachments);
 
-        $this->assertInstanceOf(DataAttachment::class, $message->body->attachments[0]);
-        $this->assertSame('payload_from_reply_button', $message->body->attachments[0]->data);
+        $this->assertInstanceOf(DataAttachment::class, $attachments[0]);
+        $this->assertSame('payload_from_reply_button', $attachments[0]->data);
 
         $this->assertInstanceOf(ShareAttachment::class, $message->body->attachments[1]);
-        $this->assertSame('Test Share', $message->body->attachments[1]->title);
+        $this->assertSame('Test Share', $attachments[1]->title);
+
+        $this->assertInstanceOf(PhotoAttachment::class, $attachments[2]);
+        $this->assertSame(1, $attachments[2]->payload->photoId);
     }
 
     #[Test]
@@ -597,5 +633,159 @@ final class ModelFactoryTest extends TestCase
         $this->expectExceptionMessage('Unknown or unsupported markup type: brand_new_unsupported_type');
 
         $this->factory->createMarkupElement(['type' => 'brand_new_unsupported_type']);
+    }
+
+    #[Test]
+    public function createAttachmentCorrectlyHydratesReplyKeyboard(): void
+    {
+        $data = [
+            'type' => 'reply_keyboard',
+            'buttons' => [
+                [['type' => 'message', 'text' => 'Hello']],
+                [['type' => 'user_contact', 'text' => 'My Contact']]
+            ]
+        ];
+
+        $attachment = $this->factory->createAttachment($data);
+
+        $this->assertInstanceOf(ReplyKeyboardAttachment::class, $attachment);
+        $this->assertCount(2, $attachment->buttons);
+        $this->assertInstanceOf(SendMessageButton::class, $attachment->buttons[0][0]);
+        $this->assertInstanceOf(SendContactButton::class, $attachment->buttons[1][0]);
+        $this->assertSame('My Contact', $attachment->buttons[1][0]->text);
+    }
+
+    #[Test]
+    public function createReplyButtonThrowsExceptionForUnknownType(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Unknown or unsupported reply button type: new_fancy_button');
+
+        $this->factory->createReplyButton(['type' => 'new_fancy_button']);
+    }
+
+    /**
+     * Data provider for successful inline button creation.
+     * @return array<string, array{0: array<string, mixed>, 1: class-string}>
+     */
+    public static function inlineButtonProvider(): array
+    {
+        return [
+            'CallbackButton' => [
+                ['type' => 'callback', 'text' => 'Press', 'payload' => 'p'],
+                CallbackButton::class,
+            ],
+            'LinkButton' => [
+                ['type' => 'link', 'text' => 'Visit', 'url' => 'https://a.com'],
+                LinkButton::class,
+            ],
+            'RequestContactButton' => [
+                ['type' => 'request_contact', 'text' => 'Share Contact'],
+                RequestContactButton::class,
+            ],
+            'RequestGeoLocationButton' => [
+                ['type' => 'request_geo_location', 'text' => 'Share Location', 'quick' => false],
+                RequestGeoLocationButton::class,
+            ],
+            'ChatButton' => [
+                ['type' => 'chat', 'text' => 'Join Chat', 'chat_title' => 'My Chat'],
+                ChatButton::class,
+            ],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('inlineButtonProvider')]
+    public function createInlineButtonSuccessfully(array $data, string $expectedClass): void
+    {
+        $button = $this->factory->createInlineButton($data);
+
+        $this->assertInstanceOf($expectedClass, $button);
+        $this->assertSame($data['text'], $button->text);
+    }
+
+    /**
+     * Data provider for invalid inline button data.
+     * @return array<string, array{0: array<string, mixed>, 1: string}>
+     */
+    public static function invalidInlineButtonProvider(): array
+    {
+        return [
+            'unknown type' => [
+                ['type' => 'unknown_button_type', 'text' => 'Unknown'],
+                'Unknown or unsupported inline button type: unknown_button_type',
+            ],
+            'missing type' => [
+                ['text' => 'No type here'],
+                'Unknown or unsupported inline button type: none',
+            ],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('invalidInlineButtonProvider')]
+    public function createInlineButtonThrowsExceptionForInvalidType(array $invalidData, string $expectedMessage): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage($expectedMessage);
+
+        $this->factory->createInlineButton($invalidData);
+    }
+
+    /**
+     * Data provider for testing various attachment types in createAttachment.
+     * @return array<string, array{0: array<string, mixed>, 1: class-string, 2: callable}>
+     */
+    public static function attachmentTypeProvider(): array
+    {
+        return [
+            'Data Attachment' => [
+                ['type' => 'data', 'data' => 'test_payload'],
+                DataAttachment::class,
+                function (TestCase $test, DataAttachment $attachment) {
+                    $test->assertSame('test_payload', $attachment->data);
+                }
+            ],
+
+            'Location Attachment' => [
+                ['type' => 'location', 'latitude' => 55.751244, 'longitude' => 37.618423],
+                LocationAttachment::class,
+                function (TestCase $test, LocationAttachment $attachment) {
+                    $test->assertSame(55.751244, $attachment->latitude);
+                }
+            ],
+
+            'Inline Keyboard Attachment' => [
+                [
+                    'type' => 'inline_keyboard',
+                    'payload' => [
+                        'buttons' => [
+                            [['type' => 'callback', 'text' => 'Test', 'payload' => 'p']]
+                        ]
+                    ]
+                ],
+                InlineKeyboardAttachment::class,
+                function (TestCase $test, InlineKeyboardAttachment $attachment) {
+                    $test->assertInstanceOf(KeyboardPayload::class, $attachment->payload);
+                    $test->assertIsArray($attachment->payload->buttons);
+                    $test->assertInstanceOf(CallbackButton::class, $attachment->payload->buttons[0][0]);
+                    $test->assertSame('p', $attachment->payload->buttons[0][0]->payload);
+                }
+            ],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('attachmentTypeProvider')]
+    public function createAttachmentSuccessfullyCreatesVariousTypes(
+        array $data,
+        string $expectedClass,
+        callable $assertionCallback,
+    ): void {
+        $attachment = $this->factory->createAttachment($data);
+
+        $this->assertInstanceOf($expectedClass, $attachment);
+
+        $assertionCallback($this, $attachment);
     }
 }
