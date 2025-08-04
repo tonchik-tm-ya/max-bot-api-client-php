@@ -79,8 +79,8 @@ final class WebhookHandlerTest extends TestCase
         );
         $message = new Message(
             $data['message']['timestamp'],
-            $messageBody,
             $recipient,
+            $messageBody,
             null,
             null,
             null,

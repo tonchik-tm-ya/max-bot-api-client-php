@@ -28,17 +28,17 @@ final class MessageTest extends TestCase
     {
         $data = [
             'timestamp' => time(),
+            'recipient' => [
+                'chat_type' => 'dialog',
+                'user_id' => 123,
+                'chat_id' => null,
+            ],
             'body' => [
                 'mid' => 'mid.456.xyz',
                 'seq' => 101,
                 'text' => 'Hello, **world**!',
                 'attachments' => null,
                 'markup' => null,
-            ],
-            'recipient' => [
-                'chat_type' => 'dialog',
-                'user_id' => 123,
-                'chat_id' => null,
             ],
             'sender' =>[
                 'user_id' => 123,
