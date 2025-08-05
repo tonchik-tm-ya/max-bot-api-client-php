@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Models\Attachments\Payloads;
 
-use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\AbstractReplyButton;
 
 final readonly class ReplyKeyboardAttachmentRequestPayload extends AbstractAttachmentRequestPayload
@@ -15,7 +14,6 @@ final readonly class ReplyKeyboardAttachmentRequestPayload extends AbstractAttac
      * @param int|null $directUserId If set, reply keyboard will only be shown to this participant.
      */
     public function __construct(
-        #[ArrayOf(AbstractReplyButton::class)]
         public array $buttons,
         public bool $direct = false,
         public ?int $directUserId = null,

@@ -12,7 +12,8 @@ final readonly class InlineKeyboardAttachment extends AbstractAttachment
     /**
      * @param KeyboardPayload $payload Keyboard payload.
      */
-    public function __construct(public KeyboardPayload $payload) {
+    public function __construct(public KeyboardPayload $payload)
+    {
         parent::__construct(AttachmentType::InlineKeyboard);
     }
 }

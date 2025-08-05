@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Models;
 
-use BushlanovDev\MaxMessengerBot\Attributes\ArrayOf;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\AbstractAttachment;
 use BushlanovDev\MaxMessengerBot\Models\Markup\AbstractMarkup;
 
@@ -24,9 +23,7 @@ final readonly class MessageBody extends AbstractModel
         public string $mid,
         public int $seq,
         public ?string $text,
-        #[ArrayOf(AbstractAttachment::class)]
         public ?array $attachments,
-        #[ArrayOf(AbstractMarkup::class)]
         public ?array $markup,
     ) {
     }
