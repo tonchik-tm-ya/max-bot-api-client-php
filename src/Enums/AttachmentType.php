@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot\Enums;
 
-enum  AttachmentType: string
+enum AttachmentType: string
 {
     case Image = 'image';
     case Video = 'video';

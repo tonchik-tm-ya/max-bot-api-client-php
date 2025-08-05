@@ -12,8 +12,7 @@ final readonly class UploadedInfoAttachmentRequestPayload extends AbstractAttach
     /**
      * @param string $token The unique token received after a successful file upload.
      */
-    public function __construct(
-        public string $token,
-    ) {
+    public function __construct(public string $token)
+    {
     }
 }

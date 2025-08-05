@@ -14,9 +14,7 @@ final readonly class PhotoToken extends AbstractModel
     /**
      * @param string $token Encoded information of uploaded image.
      */
-    public function __construct(
-        public string $token,
-    ) {
+    public function __construct(public string $token)
+    {
     }
 }
-

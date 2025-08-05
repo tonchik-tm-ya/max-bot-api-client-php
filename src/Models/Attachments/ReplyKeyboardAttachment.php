@@ -12,7 +12,8 @@ final readonly class ReplyKeyboardAttachment extends AbstractAttachment
     /**
      * @param AbstractReplyButton[][] $buttons
      */
-    public function __construct(public array $buttons) {
+    public function __construct(public array $buttons)
+    {
         parent::__construct(AttachmentType::ReplyKeyboard);
     }
 }

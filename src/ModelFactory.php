@@ -47,6 +47,7 @@ use BushlanovDev\MaxMessengerBot\Models\Markup\StrongMarkup;
 use BushlanovDev\MaxMessengerBot\Models\Markup\UnderlineMarkup;
 use BushlanovDev\MaxMessengerBot\Models\Markup\UserMentionMarkup;
 use BushlanovDev\MaxMessengerBot\Models\Message;
+use BushlanovDev\MaxMessengerBot\Models\MessageBody;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
@@ -136,21 +137,52 @@ class ModelFactory
      */
     public function createMessage(array $data): Message
     {
-        if (isset($data['body']['attachments']) && is_array($data['body']['attachments'])) {
-            $data['body']['attachments'] = array_map(
-                [$this, 'createAttachment'],
-                $data['body']['attachments'],
-            );
-        }
-
-        if (isset($data['body']['markup']) && is_array($data['body']['markup'])) {
-            $data['body']['markup'] = array_map(
-                [$this, 'createMarkupElement'],
-                $data['body']['markup'],
-            );
+        if (isset($data['body']) && is_array($data['body'])) {
+            $data['body'] = $this->createMessageBody($data['body']);
         }
 
         return Message::fromArray($data);
+    }
+
+    /**
+     * List of messages.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return Message[]
+     */
+    public function createMessages(array $data): array
+    {
+        return isset($data['messages']) && is_array($data['messages'])
+            ? array_map([$this, 'createMessage'], $data['messages'])
+            : [];
+    }
+
+    /**
+     * Creates a MessageBody object from raw API data, handling polymorphic attachments and markup.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return MessageBody
+     * @throws ReflectionException
+     */
+    private function createMessageBody(array $data): MessageBody
+    {
+        if (isset($data['attachments']) && is_array($data['attachments'])) {
+            $data['attachments'] = array_map(
+                [$this, 'createAttachment'],
+                $data['attachments'],
+            );
+        }
+
+        if (isset($data['markup']) && is_array($data['markup'])) {
+            $data['markup'] = array_map(
+                [$this, 'createMarkupElement'],
+                $data['markup'],
+            );
+        }
+
+        return MessageBody::fromArray($data);
     }
 
     /**
@@ -235,20 +267,6 @@ class ModelFactory
             InlineButtonType::Chat => ChatButton::fromArray($data),
             default => throw new LogicException("Unknown or unsupported inline button type: " . ($data['type'] ?? 'none')),
         };
-    }
-
-    /**
-     * List of messages.
-     *
-     * @param array<string, mixed> $data
-     *
-     * @return Message[]
-     */
-    public function createMessages(array $data): array
-    {
-        return isset($data['messages']) && is_array($data['messages'])
-            ? array_map([$this, 'createMessage'], $data['messages'])
-            : [];
     }
 
     /**
