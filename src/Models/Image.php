@@ -9,8 +9,7 @@ final readonly class Image extends AbstractModel
     /**
      * @param string $url URL of image.
      */
-    public function __construct(
-        public string $url,
-    ) {
+    public function __construct(public string $url)
+    {
     }
 }

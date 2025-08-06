@@ -15,6 +15,7 @@ use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\AbstractInlin
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\CallbackButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\ChatButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\LinkButton;
+use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\OpenAppButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestContactButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Inline\RequestGeoLocationButton;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Buttons\Reply\AbstractReplyButton;
@@ -224,7 +225,7 @@ class ModelFactory
             AttachmentType::InlineKeyboard => InlineKeyboardAttachment::fromArray($data),
             AttachmentType::ReplyKeyboard => ReplyKeyboardAttachment::fromArray($data),
             AttachmentType::Location => LocationAttachment::fromArray($data),
-            default => throw new LogicException("Unknown or unsupported attachment type: " . ($data['type'] ?? 'none')),
+            default => throw new LogicException('Unknown or unsupported attachment type: ' . ($data['type'] ?? 'none')),
         };
     }
 
@@ -265,7 +266,8 @@ class ModelFactory
             InlineButtonType::RequestContact => RequestContactButton::fromArray($data),
             InlineButtonType::RequestGeoLocation => RequestGeoLocationButton::fromArray($data),
             InlineButtonType::Chat => ChatButton::fromArray($data),
-            default => throw new LogicException("Unknown or unsupported inline button type: " . ($data['type'] ?? 'none')),
+            InlineButtonType::OpenApp => OpenAppButton::fromArray($data),
+            default => throw new LogicException('Unknown or unsupported inline button type: ' . ($data['type'] ?? 'none')),
         };
     }
 

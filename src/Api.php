@@ -251,10 +251,10 @@ class Api
             try {
                 $this->processUpdatesBatch($handlers, $timeout, $marker);
             } catch (NetworkException $e) {
-                error_log("Network error: " . $e->getMessage());
+                error_log('Network error: ' . $e->getMessage());
                 sleep(5);
             } catch (\Exception $e) {
-                error_log("An error occurred: " . $e->getMessage());
+                error_log('An error occurred: ' . $e->getMessage());
                 sleep(1);
             }
         }

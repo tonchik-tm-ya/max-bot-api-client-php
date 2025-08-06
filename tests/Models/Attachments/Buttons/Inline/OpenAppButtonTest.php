@@ -29,4 +29,23 @@ final class OpenAppButtonTest extends TestCase
 
         $this->assertSame($expectedArray, $resultArray);
     }
+
+    #[Test]
+    public function fromArrayHydratesCorrectly(): void
+    {
+        $data = [
+            'type' => 'open_app',
+            'text' => 'Launch',
+            'web_app' => 'SomeApp',
+            'contact_id' => 456,
+        ];
+
+        $button = OpenAppButton::fromArray($data);
+
+        $this->assertInstanceOf(OpenAppButton::class, $button);
+        $this->assertSame(InlineButtonType::OpenApp, $button->type);
+        $this->assertSame('Launch', $button->text);
+        $this->assertSame('SomeApp', $button->webApp);
+        $this->assertSame(456, $button->contactId);
+    }
 }
