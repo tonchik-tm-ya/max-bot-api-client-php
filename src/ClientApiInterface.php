@@ -26,7 +26,7 @@ interface ClientApiInterface
     public function request(string $method, string $uri, array $queryParams = [], array $body = []): array;
 
     /**
-     * Performs a file download at the specified URL.
+     * Performs a file upload at the specified URL.
      *
      * @param string $uri URL received from the download API.
      * @param resource|string $fileContents File content (stream resource or string).

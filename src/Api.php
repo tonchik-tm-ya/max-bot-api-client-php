@@ -50,9 +50,11 @@ use RuntimeException;
  */
 class Api
 {
+    public const string LIBRARY_VERSION = '0.9.0';
+
     public const string API_VERSION = '0.0.6';
 
-    private const string API_BASE_URL = 'http://127.0.0.1:5001';
+    private const string API_BASE_URL = 'https://botapi.max.ru';
 
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
@@ -107,7 +109,12 @@ class Api
                 );
             }
 
-            $guzzle = new \GuzzleHttp\Client();
+            $guzzle = new \GuzzleHttp\Client([
+                'timeout' => 10,
+                'connect_timeout' => 5,
+                'read_timeout' => 10,
+                'headers' => ['User-Agent' => 'max-bot-api-client-php/' . self::LIBRARY_VERSION . ' PHP/' . PHP_VERSION],
+            ]);
             $httpFactory = new \GuzzleHttp\Psr7\HttpFactory();
             $client = new Client(
                 $accessToken,
