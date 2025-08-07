@@ -37,6 +37,8 @@ use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use InvalidArgumentException;
 use LogicException;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use ReflectionException;
 use RuntimeException;
 
@@ -50,7 +52,7 @@ class Api
 {
     public const string API_VERSION = '0.0.6';
 
-    private const string API_BASE_URL = 'https://botapi.max.ru';
+    private const string API_BASE_URL = 'http://127.0.0.1:5001';
 
     private const string METHOD_GET = 'GET';
     private const string METHOD_POST = 'POST';
@@ -77,12 +79,15 @@ class Api
 
     private readonly ModelFactory $modelFactory;
 
+    private readonly LoggerInterface $logger;
+
     /**
      * Api constructor.
      *
      * @param string $accessToken Your bot's access token from @MasterBot.
      * @param ClientApiInterface|null $client Http api client.
      * @param ModelFactory|null $modelFactory
+     * @param LoggerInterface|null $logger
      *
      * @throws InvalidArgumentException
      */
@@ -90,7 +95,10 @@ class Api
         string $accessToken,
         ?ClientApiInterface $client = null,
         ?ModelFactory $modelFactory = null,
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger();
+
         if ($client === null) {
             if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
                 throw new LogicException(
@@ -108,6 +116,7 @@ class Api
                 $httpFactory,
                 self::API_BASE_URL,
                 self::API_VERSION,
+                $this->logger,
             );
         }
 
@@ -144,7 +153,7 @@ class Api
      */
     public function createWebhookHandler(?string $secret = null): WebhookHandler
     {
-        return new WebhookHandler($this, $this->modelFactory, $secret);
+        return new WebhookHandler($this, $this->modelFactory, $secret, $this->logger);
     }
 
     /**
@@ -251,10 +260,16 @@ class Api
             try {
                 $this->processUpdatesBatch($handlers, $timeout, $marker);
             } catch (NetworkException $e) {
-                error_log('Network error: ' . $e->getMessage());
+                $this->logger->error(
+                    'Long-polling network error: {message}',
+                    ['message' => $e->getMessage(), 'exception' => $e],
+                );
                 sleep(5);
             } catch (\Exception $e) {
-                error_log('An error occurred: ' . $e->getMessage());
+                $this->logger->error(
+                    'An error occurred during long-polling: {message}',
+                    ['message' => $e->getMessage(), 'exception' => $e],
+                );
                 sleep(1);
             }
         }

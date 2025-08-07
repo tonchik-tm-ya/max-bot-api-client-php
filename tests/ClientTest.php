@@ -28,6 +28,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
+use Psr\Log\LoggerInterface;
 
 #[CoversClass(Client::class)]
 final class ClientTest extends TestCase
@@ -42,6 +43,7 @@ final class ClientTest extends TestCase
     private MockObject&RequestInterface $requestMock;
     private MockObject&ResponseInterface $responseMock;
     private MockObject&StreamInterface $streamMock;
+    private MockObject&LoggerInterface $loggerMock;
 
     private Client $client;
 
@@ -61,6 +63,7 @@ final class ClientTest extends TestCase
         $this->requestMock = $this->createMock(RequestInterface::class);
         $this->responseMock = $this->createMock(ResponseInterface::class);
         $this->streamMock = $this->createMock(StreamInterface::class);
+        $this->loggerMock = $this->createMock(LoggerInterface::class);
 
         // Common mock setups
         $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
@@ -75,6 +78,7 @@ final class ClientTest extends TestCase
             $this->streamFactory,
             self::API_BASE_URL,
             self::API_VERSION,
+            $this->loggerMock,
         );
     }
 
@@ -375,5 +379,34 @@ final class ClientTest extends TestCase
         $this->responseMock->method('getStatusCode')->willReturn(200);
         $this->streamMock->method('__toString')->willReturn('{not-a-valid-json');
         $this->client->upload('http://some.url', 'content', 'file.txt');
+    }
+
+    #[Test]
+    public function requestLogsRequestAndResponseOnDebugLevel(): void
+    {
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn('{"success":true}');
+
+        $this->loggerMock
+            ->expects($this->exactly(2))
+            ->method('debug');
+
+        $this->client->request('GET', '/me');
+    }
+
+    #[Test]
+    public function handleErrorResponseLogsWarning(): void
+    {
+        $this->responseMock->method('getStatusCode')->willReturn(404);
+        $this->streamMock->method('__toString')->willReturn('{"code":"not.found","message":"Not Found"}');
+
+        $this->loggerMock
+            ->expects($this->once())
+            ->method('error')
+            ->with('API error response received', $this->anything());
+
+        $this->expectException(NotFoundException::class);
+
+        $this->client->request('GET', '/not/found');
     }
 }

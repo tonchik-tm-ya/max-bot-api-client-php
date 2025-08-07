@@ -70,6 +70,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use RuntimeException;
 
@@ -122,6 +123,8 @@ final class ApiTest extends TestCase
 
     private MockObject&ClientApiInterface $clientMock;
     private MockObject&ModelFactory $modelFactoryMock;
+    private MockObject&LoggerInterface $loggerMock;
+
     private Api $api;
 
     /**
@@ -133,8 +136,9 @@ final class ApiTest extends TestCase
 
         $this->clientMock = $this->createMock(ClientApiInterface::class);
         $this->modelFactoryMock = $this->createMock(ModelFactory::class);
+        $this->loggerMock = $this->createMock(LoggerInterface::class);
 
-        $this->api = new Api('fake-token', $this->clientMock, $this->modelFactoryMock);
+        $this->api = new Api('fake-token', $this->clientMock, $this->modelFactoryMock, $this->loggerMock);
     }
 
     #[Test]
@@ -773,9 +777,11 @@ final class ApiTest extends TestCase
         $handlers = [UpdateType::MessageCreated->value => fn() => null];
 
         $apiMock = $this->getMockBuilder(Api::class)
-            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock])
+            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock, $this->loggerMock])
             ->onlyMethods(['processUpdatesBatch'])
             ->getMock();
+
+        $this->loggerMock->expects($this->once())->method('error');
 
         $apiMock->expects($this->any())
             ->method('processUpdatesBatch')
@@ -789,8 +795,6 @@ final class ApiTest extends TestCase
                         throw new \Error("LoopBreak");
                 }
             });
-
-        $this->expectOutputRegex('/Network error: Simulated network error/');
 
         try {
             $apiMock->handleUpdates($handlers);
@@ -828,9 +832,11 @@ final class ApiTest extends TestCase
         $handlers = [UpdateType::MessageCreated->value => fn() => null];
 
         $apiMock = $this->getMockBuilder(Api::class)
-            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock])
+            ->setConstructorArgs(['fake-token', $this->clientMock, $this->modelFactoryMock, $this->loggerMock])
             ->onlyMethods(['processUpdatesBatch'])
             ->getMock();
+
+        $this->loggerMock->expects($this->once())->method('error');
 
         $apiMock->expects($this->any())
             ->method('processUpdatesBatch')
@@ -846,8 +852,6 @@ final class ApiTest extends TestCase
                         throw new \Error("LoopBreak");
                 }
             });
-
-        $this->expectOutputRegex('/An error occurred: Simulated JSON error/');
 
         try {
             $apiMock->handleUpdates($handlers);

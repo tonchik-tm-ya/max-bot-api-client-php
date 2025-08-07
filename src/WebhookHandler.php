@@ -9,6 +9,8 @@ use BushlanovDev\MaxMessengerBot\Exceptions\SecurityException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * A class designed to process incoming webhook requests from the Max API.
@@ -26,11 +28,13 @@ final class WebhookHandler
      * @param Api $api An instance of the Api to be passed to handlers for immediate responses.
      * @param ModelFactory $modelFactory An instance of the model factory to create Update objects.
      * @param string|null $secret The secret key provided during webhook subscription to verify requests.
+     * @param LoggerInterface $logger A PSR-3 compatible logger.
      */
     public function __construct(
         private readonly Api $api,
         private readonly ModelFactory $modelFactory,
         private readonly ?string $secret = null,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -254,6 +258,8 @@ final class WebhookHandler
         $payload = (string)$request->getBody();
         $signature = $request->getHeaderLine('X-Max-Bot-Api-Secret');
 
+        $this->logger->debug('Received webhook payload', ['body' => $payload]);
+
         if (empty($payload)) {
             throw new SerializationException('Webhook body is empty.');
         }
@@ -263,6 +269,7 @@ final class WebhookHandler
         try {
             $data = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
+            $this->logger->error('Failed to decode webhook JSON', ['payload' => $payload, 'exception' => $e]);
             throw new SerializationException('Failed to decode webhook body as JSON.', 0, $e);
         }
 
@@ -297,6 +304,7 @@ final class WebhookHandler
         }
 
         if (!hash_equals($this->secret, $signature)) {
+            $this->logger->warning('Webhook signature verification failed', ['received_signature' => $signature]);
             throw new SecurityException('Signature verification failed.');
         }
     }

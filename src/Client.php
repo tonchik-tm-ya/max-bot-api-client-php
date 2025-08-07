@@ -19,6 +19,8 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * The low-level HTTP client responsible for communicating with the Max Bot API.
@@ -34,6 +36,7 @@ final readonly class Client implements ClientApiInterface
      * @param StreamFactoryInterface $streamFactory A PSR-17 factory for creating request body streams.
      * @param string $baseUrl The base URL for API requests.
      * @param string|null $apiVersion The API version to use for requests.
+     * @param LoggerInterface $logger
      *
      * @throws InvalidArgumentException
      */
@@ -44,6 +47,7 @@ final readonly class Client implements ClientApiInterface
         private StreamFactoryInterface $streamFactory,
         private string $baseUrl,
         private ?string $apiVersion = null,
+        private LoggerInterface $logger = new NullLogger(),
     ) {
         if (empty($accessToken)) {
             throw new InvalidArgumentException('Access token cannot be empty.');
@@ -59,6 +63,12 @@ final readonly class Client implements ClientApiInterface
         if (!empty($this->apiVersion)) {
             $queryParams['v'] = $this->apiVersion;
         }
+
+        $this->logger->debug('Sending API request', [
+            'method' => $method,
+            'url' => $this->baseUrl . $uri,
+            'body' => $body,
+        ]);
 
         $fullUrl = $this->baseUrl . $uri . '?' . http_build_query($queryParams);
         $request = $this->requestFactory->createRequest($method, $fullUrl);
@@ -79,12 +89,21 @@ final readonly class Client implements ClientApiInterface
             $response = $this->httpClient->sendRequest($request);
         } catch (ClientExceptionInterface $e) {
             // This catches network errors, DNS failures, timeouts, etc.
+            $this->logger->error('Network exception during API request', [
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
             throw new NetworkException($e->getMessage(), $e->getCode(), $e);
         }
 
         $this->handleErrorResponse($response);
 
         $responseBody = (string)$response->getBody();
+
+        $this->logger->debug('Received API response', [
+            'status' => $response->getStatusCode(),
+            'body' => $responseBody,
+        ]);
 
         // Handle successful but empty responses (e.g., from DELETE endpoints)
         if (empty($responseBody)) {
@@ -160,6 +179,11 @@ final readonly class Client implements ClientApiInterface
         $data = json_decode($responseBody, true) ?? [];
         $errorCode = $data['code'] ?? 'unknown';
         $errorMessage = $data['message'] ?? 'An unknown error occurred.';
+
+        $this->logger->error('API error response received', [
+            'status' => $statusCode,
+            'body' => $responseBody,
+        ]);
 
         throw match ($statusCode) {
             401 => new UnauthorizedException($errorMessage, $errorCode, $response),

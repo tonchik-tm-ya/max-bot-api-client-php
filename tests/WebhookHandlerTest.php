@@ -25,6 +25,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 #[CoversClass(WebhookHandler::class)]
 #[UsesClass(Message::class)]
@@ -38,6 +39,8 @@ final class WebhookHandlerTest extends TestCase
 
     private MockObject&Api $apiMock;
     private MockObject&ModelFactory $modelFactoryMock;
+    private MockObject&LoggerInterface $loggerMock;
+
     private const string SECRET = 'my-super-secret-key';
 
     protected function setUp(): void
@@ -45,6 +48,7 @@ final class WebhookHandlerTest extends TestCase
         parent::setUp();
         $this->apiMock = $this->createMock(Api::class);
         $this->modelFactoryMock = $this->createMock(ModelFactory::class);
+        $this->loggerMock = $this->createMock(LoggerInterface::class);
     }
 
     private function createValidUpdatePayload(): string
@@ -260,5 +264,22 @@ final class WebhookHandlerTest extends TestCase
 
         $webhookHandler = new WebhookHandler($this->apiMock, $this->modelFactoryMock);
         $webhookHandler->handle(null);
+    }
+
+    #[Test]
+    public function verifySignatureLogsWarningOnFailure(): void
+    {
+        $request = new ServerRequest(
+            'POST', '/webhook', ['X-Max-Bot-Api-Secret' => 'wrong-signature'], $this->createValidUpdatePayload()
+        );
+        $webhookHandler = new WebhookHandler($this->apiMock, $this->modelFactoryMock, self::SECRET, $this->loggerMock);
+
+        $this->loggerMock
+            ->expects($this->once())
+            ->method('warning')
+            ->with('Webhook signature verification failed', ['received_signature' => 'wrong-signature']);
+
+        $this->expectException(SecurityException::class);
+        $webhookHandler->parseUpdate($request);
     }
 }
