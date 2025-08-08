@@ -4,205 +4,37 @@ declare(strict_types=1);
 
 namespace BushlanovDev\MaxMessengerBot;
 
-use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Exceptions\SecurityException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
-use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 /**
  * A class designed to process incoming webhook requests from the Max API.
- * It verifies the request's authenticity, parses it, and dispatches it
- * to the appropriate registered event handler.
+ * It verifies the request's authenticity, parses it, and uses an UpdateDispatcher
+ * to route it to the appropriate handler.
  */
-final class WebhookHandler
+final readonly class WebhookHandler
 {
     /**
-     * @var array<string, callable>
-     */
-    private array $handlers = [];
-
-    /**
-     * @param Api $api An instance of the Api to be passed to handlers for immediate responses.
-     * @param ModelFactory $modelFactory An instance of the model factory to create Update objects.
-     * @param string|null $secret The secret key provided during webhook subscription to verify requests.
-     * @param LoggerInterface $logger A PSR-3 compatible logger.
+     * @param UpdateDispatcher $dispatcher The update dispatcher.
+     * @param ModelFactory $modelFactory The model factory.
+     * @param LoggerInterface $logger PSR LoggerInterface.
+     * @param string|null $secret The secret key for request verification.
      */
     public function __construct(
-        private readonly Api $api,
-        private readonly ModelFactory $modelFactory,
-        private readonly ?string $secret = null,
-        private readonly LoggerInterface $logger = new NullLogger(),
+        private UpdateDispatcher $dispatcher,
+        private ModelFactory $modelFactory,
+        private LoggerInterface $logger,
+        private ?string $secret,
     ) {
     }
 
     /**
-     * Registers a handler for a specific update type.
-     *
-     * @param UpdateType $type The type of update to handle.
-     * @param callable $handler The function to execute when the update is received.
-     *        The handler will receive the specific Update object (e.g., MessageCreatedUpdate) and the Api instance.
-     *
-     * @return WebhookHandler
-     */
-    public function addHandler(UpdateType $type, callable $handler): self
-    {
-        $this->handlers[$type->value] = $handler;
-
-        return $this;
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::MessageCreated, $handler).
-     *
-     * @param callable(Models\Updates\MessageCreatedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     */
-    public function onMessageCreated(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::MessageCreated, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::MessageCallback, $handler).
-     *
-     * @param callable(Models\Updates\MessageCallbackUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onMessageCallback(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::MessageCallback, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::MessageEdited, $handler).
-     *
-     * @param callable(Models\Updates\MessageEditedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onMessageEdited(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::MessageEdited, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::MessageRemoved, $handler).
-     *
-     * @param callable(Models\Updates\MessageRemovedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onMessageRemoved(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::MessageRemoved, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::BotAdded, $handler).
-     *
-     * @param callable(Models\Updates\BotAddedToChatUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onBotAdded(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::BotAdded, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::BotRemoved, $handler).
-     *
-     * @param callable(Models\Updates\BotRemovedFromChatUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onBotRemoved(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::BotRemoved, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::UserAdded, $handler).
-     *
-     * @param callable(Models\Updates\UserAddedToChatUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onUserAdded(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::UserAdded, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::UserRemoved, $handler).
-     *
-     * @param callable(Models\Updates\UserRemovedFromChatUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onUserRemoved(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::UserRemoved, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::BotStarted, $handler).
-     *
-     * @param callable(Models\Updates\BotStartedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onBotStarted(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::BotStarted, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::ChatTitleChanged, $handler).
-     *
-     * @param callable(Models\Updates\ChatTitleChangedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onChatTitleChanged(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::ChatTitleChanged, $handler);
-    }
-
-    /**
-     * A convenient alias for addHandler(UpdateType::MessageChatCreated, $handler).
-     *
-     * @param callable(Models\Updates\MessageChatCreatedUpdate, Api): void $handler
-     *
-     * @return WebhookHandler
-     * @codeCoverageIgnore
-     */
-    public function onMessageChatCreated(callable $handler): self
-    {
-        return $this->addHandler(UpdateType::MessageChatCreated, $handler);
-    }
-
-    /**
      * Processes an incoming webhook request.
-     * This is the main entry point. It reads the HTTP request body and headers,
-     * verifies the signature, parses the update, and calls the appropriate handler.
-     * It automatically sends the correct HTTP response code.
+     * It reads the HTTP request, verifies, parses, and dispatches the update.
      *
-     * @param ServerRequestInterface|null $request The Psr7 HTTP request to process.
+     * @param ServerRequestInterface|null $request The PSR-7 HTTP request. If null, created from globals.
      *
      * @throws \ReflectionException
      * @throws SecurityException
@@ -210,24 +42,6 @@ final class WebhookHandler
      * @throws \LogicException
      */
     public function handle(?ServerRequestInterface $request = null): void
-    {
-        $this->dispatch($this->getUpdate($request));
-
-        http_response_code(200);
-    }
-
-    /**
-     * Parses the raw request data and returns a typed Update object.
-     *
-     * @param ServerRequestInterface|null $request The Psr7 HTTP request to process.
-     *
-     * @return AbstractUpdate
-     * @throws \ReflectionException
-     * @throws SecurityException
-     * @throws SerializationException
-     * @throws \LogicException
-     */
-    public function getUpdate(?ServerRequestInterface $request = null): AbstractUpdate
     {
         if ($request === null) {
             if (!class_exists(\GuzzleHttp\Psr7\ServerRequest::class)) {
@@ -239,32 +53,14 @@ final class WebhookHandler
             $request = \GuzzleHttp\Psr7\ServerRequest::fromGlobals();
         }
 
-        return $this->parseUpdate($request);
-    }
-
-    /**
-     * Parses the raw request data and returns a typed Update object.
-     *
-     * @param ServerRequestInterface $request
-     *
-     * @return AbstractUpdate
-     * @throws \ReflectionException
-     * @throws SecurityException
-     * @throws SerializationException
-     * @throws \LogicException
-     */
-    public function parseUpdate(ServerRequestInterface $request): AbstractUpdate
-    {
         $payload = (string)$request->getBody();
-        $signature = $request->getHeaderLine('X-Max-Bot-Api-Secret');
-
         $this->logger->debug('Received webhook payload', ['body' => $payload]);
 
         if (empty($payload)) {
             throw new SerializationException('Webhook body is empty.');
         }
 
-        $this->verifySignature($signature);
+        $this->verifySignature($request->getHeaderLine('X-Max-Bot-Api-Secret'));
 
         try {
             $data = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
@@ -273,20 +69,12 @@ final class WebhookHandler
             throw new SerializationException('Failed to decode webhook body as JSON.', 0, $e);
         }
 
-        return $this->modelFactory->createUpdate($data);
-    }
+        $update = $this->modelFactory->createUpdate($data);
 
-    /**
-     * Dispatches a parsed Update object to its registered handler.
-     *
-     * @param AbstractUpdate $update
-     */
-    public function dispatch(AbstractUpdate $update): void
-    {
-        $handler = $this->handlers[$update->updateType->value] ?? null;
+        $this->dispatcher->dispatch($update);
 
-        if ($handler) {
-            $handler($update, $this->api);
+        if (!headers_sent()) {
+            http_response_code(200);
         }
     }
 

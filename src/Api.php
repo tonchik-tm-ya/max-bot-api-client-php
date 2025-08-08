@@ -10,7 +10,6 @@ use BushlanovDev\MaxMessengerBot\Enums\UpdateType;
 use BushlanovDev\MaxMessengerBot\Enums\UploadType;
 use BushlanovDev\MaxMessengerBot\Exceptions\ClientApiException;
 use BushlanovDev\MaxMessengerBot\Exceptions\NetworkException;
-use BushlanovDev\MaxMessengerBot\Exceptions\SecurityException;
 use BushlanovDev\MaxMessengerBot\Exceptions\SerializationException;
 use BushlanovDev\MaxMessengerBot\Models\AbstractModel;
 use BushlanovDev\MaxMessengerBot\Models\Attachments\Requests\AbstractAttachmentRequest;
@@ -31,12 +30,10 @@ use BushlanovDev\MaxMessengerBot\Models\MessageLink;
 use BushlanovDev\MaxMessengerBot\Models\Result;
 use BushlanovDev\MaxMessengerBot\Models\Subscription;
 use BushlanovDev\MaxMessengerBot\Models\UpdateList;
-use BushlanovDev\MaxMessengerBot\Models\Updates\AbstractUpdate;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use InvalidArgumentException;
 use LogicException;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use ReflectionException;
@@ -83,13 +80,16 @@ class Api
 
     private readonly LoggerInterface $logger;
 
+    private readonly UpdateDispatcher $updateDispatcher;
+
     /**
      * Api constructor.
      *
      * @param string $accessToken Your bot's access token from @MasterBot.
      * @param ClientApiInterface|null $client Http api client.
-     * @param ModelFactory|null $modelFactory
-     * @param LoggerInterface|null $logger
+     * @param ModelFactory|null $modelFactory The model factory.
+     * @param LoggerInterface|null $logger PSR LoggerInterface.
+     * @param UpdateDispatcher|null $updateDispatcher The update dispatcher.
      *
      * @throws InvalidArgumentException
      */
@@ -98,6 +98,7 @@ class Api
         ?ClientApiInterface $client = null,
         ?ModelFactory $modelFactory = null,
         ?LoggerInterface $logger = null,
+        ?UpdateDispatcher $updateDispatcher = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
 
@@ -129,6 +130,7 @@ class Api
 
         $this->client = $client;
         $this->modelFactory = $modelFactory ?? new ModelFactory();
+        $this->updateDispatcher = $updateDispatcher ?? new UpdateDispatcher($this);
     }
 
     /**
@@ -151,67 +153,45 @@ class Api
     }
 
     /**
+     * Gets the central update dispatcher instance. Use this to register your event and command handlers.
+     *
+     * @return UpdateDispatcher
+     * @codeCoverageIgnore
+     */
+    public function getUpdateDispatcher(): UpdateDispatcher
+    {
+        return $this->updateDispatcher;
+    }
+
+    /**
      * Creates a WebhookHandler instance, pre-configured with the necessary dependencies.
      *
      * @param string|null $secret The secret key for request verification.
-     *        Should be the same one you used when calling the subscribe() method.
      *
      * @return WebhookHandler
      */
     public function createWebhookHandler(?string $secret = null): WebhookHandler
     {
-        return new WebhookHandler($this, $this->modelFactory, $secret, $this->logger);
+        return new WebhookHandler(
+            $this->updateDispatcher,
+            $this->modelFactory,
+            $this->logger,
+            $secret,
+        );
     }
 
     /**
-     * Parses an incoming webhook request and returns a single Update object.
-     * This is an alternative to the event-driven WebhookHandler::handle() method,
-     * allowing for manual processing of updates.
+     * Creates a LongPollingHandler instance, pre-configured for running a long-polling loop.
      *
-     * @param string|null $secret The secret key to verify the request signature.
-     * @param ServerRequestInterface|null $request The PSR-7 request object. If null, it's created from globals.
-     *
-     * @return AbstractUpdate The parsed update object (e.g., MessageCreatedUpdate).
-     * @throws \ReflectionException
-     * @throws SecurityException
-     * @throws SerializationException
-     * @throws \LogicException
+     * @return LongPollingHandler
      */
-    public function getWebhookUpdate(?string $secret = null, ?ServerRequestInterface $request = null): AbstractUpdate
+    public function createLongPollingHandler(): LongPollingHandler
     {
-        return $this->createWebhookHandler($secret)->getUpdate($request);
-    }
-
-    /**
-     * A simple way to process a single incoming webhook request using callbacks.
-     * This method creates a WebhookHandler, registers the provided callbacks, and processes the request.
-     *
-     * @param array<string, callable> $handlers An associative array where keys are UpdateType string values
-     *        (e.g., UpdateType::MessageCreated->value) and values are handlers.
-     * @param string|null $secret The secret key for request verification.
-     * @param ServerRequestInterface|null $request The PSR-7 request object.
-     *
-     * @throws SecurityException
-     * @throws SerializationException
-     * @throws ReflectionException
-     * @throws LogicException
-     */
-    public function handleWebhooks(
-        array $handlers,
-        ?string $secret = null,
-        ?ServerRequestInterface $request = null,
-    ): void {
-        $webhookHandler = $this->createWebhookHandler($secret);
-
-        foreach ($handlers as $updateType => $callback) {
-            $updateType = UpdateType::tryFrom($updateType);
-            // @phpstan-ignore-next-line
-            if ($updateType && is_callable($callback)) {
-                $webhookHandler->addHandler($updateType, $callback);
-            }
-        }
-
-        $webhookHandler->handle($request);
+        return new LongPollingHandler(
+            $this,
+            $this->updateDispatcher,
+            $this->logger,
+        );
     }
 
     /**
@@ -249,64 +229,6 @@ class Api
                 array_filter($query, fn($value) => $value !== null),
             )
         );
-    }
-
-    /**
-     * Starts a long-polling loop to process updates using callbacks.
-     * This method will run indefinitely until the script is terminated.
-     *
-     * @param array<string, callable> $handlers An associative array where keys are UpdateType enums
-     *        and values are the corresponding handler functions.
-     * @param int|null $timeout Timeout in seconds for long polling (0-90). Defaults to 90.
-     * @param int|null $marker Pass `null` to get updates you didn't get yet.
-     */
-    public function handleUpdates(array $handlers, ?int $timeout = null, ?int $marker = null): void
-    {
-        // @phpstan-ignore-next-line
-        while (true) {
-            try {
-                $this->processUpdatesBatch($handlers, $timeout, $marker);
-            } catch (NetworkException $e) {
-                $this->logger->error(
-                    'Long-polling network error: {message}',
-                    ['message' => $e->getMessage(), 'exception' => $e],
-                );
-                sleep(5);
-            } catch (\Exception $e) {
-                $this->logger->error(
-                    'An error occurred during long-polling: {message}',
-                    ['message' => $e->getMessage(), 'exception' => $e],
-                );
-                sleep(1);
-            }
-        }
-    }
-
-    /**
-     * Processes a single batch of updates. This is the core logic used by handleUpdates().
-     * Useful for custom loop implementations or for testing.
-     *
-     * @param array<string, callable> $handlers An associative array of update handlers.
-     * @param int|null $timeout Timeout for the getUpdates call.
-     * @param int|null $marker The marker for which updates to fetch.
-     *
-     * @throws ClientApiException
-     * @throws NetworkException
-     * @throws ReflectionException
-     * @throws SerializationException
-     */
-    public function processUpdatesBatch(array $handlers, ?int $timeout, ?int &$marker = null): void
-    {
-        $updateList = $this->getUpdates(timeout: $timeout, marker: $marker);
-
-        foreach ($updateList->updates as $update) {
-            $handler = $handlers[$update->updateType->value] ?? null;
-            if ($handler) {
-                $handler($update, $this);
-            }
-        }
-
-        $marker = $updateList->marker;
     }
 
     /**
