@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,9 @@ use Psr\Log\LoggerInterface;
 #[CoversClass(LongPollingHandler::class)]
 #[UsesClass(UpdateDispatcher::class)]
 #[UsesClass(UpdateList::class)]
+#[UsesClass(AbstractUpdate::class)]
+#[UsesClass(BotStartedUpdate::class)]
+#[UsesClass(User::class)]
 final class LongPollingHandlerTest extends TestCase
 {
     use PHPMock;
@@ -36,11 +40,12 @@ final class LongPollingHandlerTest extends TestCase
      * @param int $expectedDispatchCount
      * @param int|null $expectedMarker
      */
-    #[DataProvider('processSingleBatchProvider')]
-    public function testProcessSingleBatch(
+    #[Test]
+    #[DataProvider('processUpdatesProvider')]
+    public function processUpdates(
         array $updatesToReturn,
         int $expectedDispatchCount,
-        ?int $expectedMarker
+        ?int $expectedMarker,
     ): void {
         $apiMock = $this->createMock(Api::class);
         $loggerMock = $this->createMock(LoggerInterface::class);
@@ -60,7 +65,7 @@ final class LongPollingHandlerTest extends TestCase
 
         $handler = new LongPollingHandler($apiMock, $dispatcher, $loggerMock);
 
-        $returnedMarker = $handler->processSingleBatch(90, null);
+        $returnedMarker = $handler->processUpdates(90, null);
 
         $this->assertSame(
             $expectedDispatchCount,
@@ -70,7 +75,7 @@ final class LongPollingHandlerTest extends TestCase
         $this->assertSame($expectedMarker, $returnedMarker, 'Method should return the correct marker.');
     }
 
-    public static function processSingleBatchProvider(): array
+    public static function processUpdatesProvider(): array
     {
         $user = new User(1, 'Test', null, null, false, time());
         $update1 = new BotStartedUpdate(time(), 1, $user, null, null);
@@ -90,9 +95,10 @@ final class LongPollingHandlerTest extends TestCase
         ];
     }
 
+    #[Test]
     #[PreserveGlobalState(false)]
     #[RunInSeparateProcess]
-    public function testRunCatchesNetworkExceptionAndSleeps5Seconds(): void
+    public function runCatchesNetworkExceptionAndSleeps5Seconds(): void
     {
         $apiMock = $this->createMock(Api::class);
         $loggerMock = $this->createMock(LoggerInterface::class);
@@ -121,9 +127,10 @@ final class LongPollingHandlerTest extends TestCase
         }
     }
 
+    #[Test]
     #[PreserveGlobalState(false)]
     #[RunInSeparateProcess]
-    public function testRunCatchesGenericExceptionAndSleeps1Second(): void
+    public function runCatchesGenericExceptionAndSleeps1Second(): void
     {
         $apiMock = $this->createMock(Api::class);
         $loggerMock = $this->createMock(LoggerInterface::class);
@@ -150,5 +157,44 @@ final class LongPollingHandlerTest extends TestCase
         } catch (Error $e) {
             $this->assertSame('Stop test loop', $e->getMessage());
         }
+    }
+
+    #[Test]
+    public function processUpdatesContinuesAndLogsWhenHandlerThrows(): void
+    {
+        $apiMock = $this->createMock(Api::class);
+        $loggerMock = $this->createMock(LoggerInterface::class);
+
+        $dispatcher = new UpdateDispatcher($apiMock, $loggerMock);
+
+        $user = new User(1, 'Test', null, null, false, time());
+        $updateToFail = new BotStartedUpdate(time(), 1, $user, null, null);
+        $updateToSucceed = new BotStartedUpdate(time(), 2, $user, null, null);
+
+        $updateList = new UpdateList([$updateToFail, $updateToSucceed], 12345);
+        $exception = new Exception('Error inside handler');
+
+        $apiMock->expects($this->once())
+            ->method('getUpdates')
+            ->willReturn($updateList);
+
+        $handlerCallCount = 0;
+        $dispatcher->addHandler(UpdateType::BotStarted, function () use (&$handlerCallCount, $exception) {
+            $currentCall = $handlerCallCount++;
+            if ($currentCall === 0) {
+                throw $exception;
+            }
+        });
+
+        $loggerMock->expects($this->once())
+            ->method('error')
+            ->with('Error dispatching update', ['message' => 'Error inside handler', 'exception' => $exception]);
+
+        $handler = new LongPollingHandler($apiMock, $dispatcher, $loggerMock);
+
+        $returnedMarker = $handler->processUpdates(90, null);
+
+        $this->assertSame(12345, $returnedMarker, 'Method should return marker even if a handler failed.');
+        $this->assertSame(2, $handlerCallCount, 'Dispatcher should have attempted to process both updates.');
     }
 }

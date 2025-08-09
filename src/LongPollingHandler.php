@@ -16,12 +16,16 @@ final readonly class LongPollingHandler
      * @param Api $api
      * @param UpdateDispatcher $dispatcher The update dispatcher.
      * @param LoggerInterface $logger PSR LoggerInterface.
+     * @codeCoverageIgnore
      */
     public function __construct(
         private Api $api,
         private UpdateDispatcher $dispatcher,
         private LoggerInterface $logger,
     ) {
+        if (!(\PHP_SAPI === 'cli')) {
+            throw new \RuntimeException('LongPollingHandler can only be used in CLI mode.');
+        }
     }
 
     /**
@@ -32,12 +36,19 @@ final readonly class LongPollingHandler
      * @return int|null The new marker to be used for the next iteration.
      * @throws \Exception Re-throws exceptions from the API or dispatcher.
      */
-    public function processSingleBatch(int $timeout, ?int $marker): ?int
+    public function processUpdates(int $timeout, ?int $marker): ?int
     {
         $updateList = $this->api->getUpdates(timeout: $timeout, marker: $marker);
 
         foreach ($updateList->updates as $update) {
-            $this->dispatcher->dispatch($update);
+            try {
+                $this->dispatcher->dispatch($update);
+            } catch (\Throwable $e) {
+                $this->logger->error('Error dispatching update', [
+                    'message' => $e->getMessage(),
+                    'exception' => $e,
+                ]);
+            }
         }
 
         return $updateList->marker;
@@ -52,10 +63,11 @@ final readonly class LongPollingHandler
      */
     public function handle(int $timeout = 90, ?int $marker = null): void
     {
+        $this->listenSignals();
         // @phpstan-ignore-next-line
         while (true) {
             try {
-                $marker = $this->processSingleBatch($timeout, $marker);
+                $marker = $this->processUpdates($timeout, $marker);
             } catch (NetworkException $e) {
                 $this->logger->error(
                     'Long-polling network error: {message}',
@@ -69,6 +81,24 @@ final readonly class LongPollingHandler
                 );
                 sleep(1);
             }
+        }
+    }
+
+    /**
+     * @codeCoverageIgnore
+     */
+    protected function listenSignals(): void
+    {
+        if (extension_loaded('pcntl')) {
+            pcntl_async_signals(true);
+
+            $kill = static function () {
+                exit(0);
+            };
+
+            pcntl_signal(SIGINT, $kill);
+            pcntl_signal(SIGQUIT, $kill);
+            pcntl_signal(SIGTERM, $kill);
         }
     }
 }
