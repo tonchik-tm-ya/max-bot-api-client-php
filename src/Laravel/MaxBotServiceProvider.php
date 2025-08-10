@@ -1,0 +1,190 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BushlanovDev\MaxMessengerBot\Laravel;
+
+use BushlanovDev\MaxMessengerBot\Api;
+use BushlanovDev\MaxMessengerBot\Client;
+use BushlanovDev\MaxMessengerBot\ClientApiInterface;
+use BushlanovDev\MaxMessengerBot\ModelFactory;
+use BushlanovDev\MaxMessengerBot\UpdateDispatcher;
+use BushlanovDev\MaxMessengerBot\WebhookHandler;
+use BushlanovDev\MaxMessengerBot\LongPollingHandler;
+use BushlanovDev\MaxMessengerBot\Laravel\Commands\WebhookSubscribeCommand;
+use BushlanovDev\MaxMessengerBot\Laravel\Commands\WebhookUnsubscribeCommand;
+use BushlanovDev\MaxMessengerBot\Laravel\Commands\WebhookListCommand;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Contracts\Config\Repository as Config;
+use Psr\Log\LoggerInterface;
+use InvalidArgumentException;
+
+/**
+ * Laravel Service Provider for Max Bot API Client.
+ * Registers all necessary services in the Laravel container.
+ */
+class MaxBotServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->mergeConfigFrom(
+            __DIR__ . '/config/maxbot.php',
+            'maxbot',
+        );
+
+        $this->app->singleton(ClientApiInterface::class, function (Application $app) {
+            $config = $app->make(Config::class);
+            $accessToken = $config->get('maxbot.access_token');
+
+            if (empty($accessToken)) {
+                throw new InvalidArgumentException(
+                    'Max Bot access token is not configured. Please set MAXBOT_ACCESS_TOKEN in your .env file.'
+                );
+            }
+
+            if (!class_exists(\GuzzleHttp\Client::class) || !class_exists(\GuzzleHttp\Psr7\HttpFactory::class)) {
+                throw new \LogicException(
+                    'Guzzle HTTP client is required. Please run "composer require guzzlehttp/guzzle".'
+                );
+            }
+
+            $timeout = $config->get('maxbot.timeout', 10);
+            $connectTimeout = $config->get('maxbot.connect_timeout', 5);
+            $readTimeout = $config->get('maxbot.read_timeout', 10);
+            $baseUrl = $config->get('maxbot.base_url', 'https://botapi.max.ru');
+            $apiVersion = $config->get('maxbot.api_version', Api::API_VERSION);
+
+            $guzzle = new \GuzzleHttp\Client([
+                'timeout' => $timeout,
+                'connect_timeout' => $connectTimeout,
+                'read_timeout' => $readTimeout,
+                'headers' => [
+                    'User-Agent' => 'max-bot-api-client-php/' . Api::LIBRARY_VERSION
+                        . ' Laravel/' . $app->version() . ' PHP/' . PHP_VERSION
+                ],
+            ]);
+
+            $httpFactory = new \GuzzleHttp\Psr7\HttpFactory();
+
+            return new Client(
+                $accessToken,
+                $guzzle,
+                $httpFactory,
+                $httpFactory,
+                $baseUrl,
+                $apiVersion,
+                $app->make(LoggerInterface::class),
+            );
+        });
+
+        $this->app->singleton(ModelFactory::class, function () {
+            return new ModelFactory();
+        });
+
+        $this->app->singleton(UpdateDispatcher::class, function (Application $app) {
+            return new UpdateDispatcher($app->make(Api::class));
+        });
+
+        $this->app->singleton(Api::class, function (Application $app) {
+            $config = $app->make(Config::class);
+            $accessToken = $config->get('maxbot.access_token');
+
+            if (empty($accessToken)) {
+                throw new InvalidArgumentException(
+                    'Max Bot access token is not configured. Please set MAXBOT_ACCESS_TOKEN in your .env file.'
+                );
+            }
+
+            return new Api(
+                $accessToken,
+                $app->make(ClientApiInterface::class),
+                $app->make(ModelFactory::class),
+                $app->make(LoggerInterface::class),
+                $app->make(UpdateDispatcher::class),
+            );
+        });
+
+        $this->app->bind(WebhookHandler::class, function (Application $app) {
+            $config = $app->make(Config::class);
+            $secret = $config->get('maxbot.webhook_secret');
+
+            return new WebhookHandler(
+                $app->make(UpdateDispatcher::class),
+                $app->make(ModelFactory::class),
+                $app->make(LoggerInterface::class),
+                $secret,
+            );
+        });
+
+        $this->app->bind(LongPollingHandler::class, function (Application $app) {
+            return new LongPollingHandler(
+                $app->make(Api::class),
+                $app->make(UpdateDispatcher::class),
+                $app->make(LoggerInterface::class),
+            );
+        });
+
+        $this->app->singleton(MaxBotManager::class, function (Application $app) {
+            return new MaxBotManager(
+                $app,
+                $app->make(Api::class),
+                $app->make(UpdateDispatcher::class),
+            );
+        });
+
+        $this->app->alias(Api::class, 'maxbot');
+        $this->app->alias(Api::class, 'maxbot.api');
+        $this->app->alias(ClientApiInterface::class, 'maxbot.client');
+        $this->app->alias(UpdateDispatcher::class, 'maxbot.dispatcher');
+        $this->app->alias(WebhookHandler::class, 'maxbot.webhook');
+        $this->app->alias(LongPollingHandler::class, 'maxbot.polling');
+        $this->app->alias(MaxBotManager::class, 'maxbot.manager');
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        $this->publishes([
+            __DIR__ . '/config/maxbot.php' => $this->app->configPath('maxbot.php'),
+        ], 'maxbot-config');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                WebhookSubscribeCommand::class,
+                WebhookUnsubscribeCommand::class,
+                WebhookListCommand::class,
+            ]);
+        }
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [
+            Api::class,
+            ClientApiInterface::class,
+            ModelFactory::class,
+            UpdateDispatcher::class,
+            WebhookHandler::class,
+            LongPollingHandler::class,
+            MaxBotManager::class,
+            'maxbot',
+            'maxbot.api',
+            'maxbot.client',
+            'maxbot.dispatcher',
+            'maxbot.webhook',
+            'maxbot.polling',
+            'maxbot.manager',
+        ];
+    }
+}

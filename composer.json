@@ -1,7 +1,7 @@
 {
   "name": "bushlanov-dev/max-bot-api-client-php",
   "description": "Max Bot API Client library",
-  "keywords": ["max messenger", "bot", "max", "api"],
+  "keywords": ["max messenger", "bot", "max", "api", "max bot", "laravel", "laravel max bot"],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -17,15 +17,19 @@
     "ext-json": "*",
     "guzzlehttp/guzzle": "^6.5.8||^7.0",
     "guzzlehttp/psr7": "^1.8||^2.0",
-    "psr/log": "^3.0",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
-    "psr/http-message": "^1.0||^2.0"
+    "psr/http-message": "^1.0||^2.0",
+    "psr/log": "^3.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.77",
+    "illuminate/console": "^12.22",
+    "illuminate/http": "^12.22",
+    "illuminate/testing": "^11.0||^12.0",
     "jaschilz/php-coverage-badger": "^2.0",
     "mikey179/vfsstream": "^1.6",
+    "mockery/mockery": "^1.6",
     "php-mock/php-mock-phpunit": "^2.13",
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^12.0",
@@ -43,6 +47,16 @@
   },
   "config": {
     "sort-packages": true
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "BushlanovDev\\MaxMessengerBot\\Laravel\\MaxBotServiceProvider"
+      ],
+      "aliases": {
+        "MaxBot": "BushlanovDev\\MaxMessengerBot\\Laravel\\MaxBotFacade"
+      }
+    }
   },
   "scripts": {
     "analyse": "vendor/bin/phpstan analyse -c phpstan.neon --memory-limit=256M",

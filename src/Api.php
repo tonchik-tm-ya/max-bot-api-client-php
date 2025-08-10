@@ -843,7 +843,7 @@ class Api
         int $chatId,
         ?array $userIds = null,
         ?int $marker = null,
-        ?int $count = null
+        ?int $count = null,
     ): ChatMembersList {
         $query = [
             'user_ids' => $userIds !== null ? implode(',', $userIds) : null,
