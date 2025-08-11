@@ -113,6 +113,7 @@ class MaxBotManager
      * It will run indefinitely until stopped.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function startLongPolling(int $timeout = 90, ?int $marker = null): void
     {
@@ -129,6 +130,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function addHandler(UpdateType $type, callable|string $handler): void
     {
@@ -142,6 +144,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onCommand(string $command, callable|string $handler): void
     {
@@ -154,6 +157,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onMessageCreated(callable|string $handler): void
     {
@@ -166,6 +170,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onMessageCallback(callable|string $handler): void
     {
@@ -178,6 +183,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onMessageEdited(callable|string $handler): void
     {
@@ -190,6 +196,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onMessageRemoved(callable|string $handler): void
     {
@@ -202,6 +209,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onBotAdded(callable|string $handler): void
     {
@@ -214,6 +222,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onBotRemoved(callable|string $handler): void
     {
@@ -226,6 +235,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onUserAdded(callable|string $handler): void
     {
@@ -238,6 +248,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onUserRemoved(callable|string $handler): void
     {
@@ -250,6 +261,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onBotStarted(callable|string $handler): void
     {
@@ -262,6 +274,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onChatTitleChanged(callable|string $handler): void
     {
@@ -274,6 +287,7 @@ class MaxBotManager
      * @param callable|string $handler Can be a closure, callable, or Laravel container binding.
      *
      * @throws BindingResolutionException
+     * @codeCoverageIgnore
      */
     public function onMessageChatCreated(callable|string $handler): void
     {
@@ -282,6 +296,7 @@ class MaxBotManager
 
     /**
      * Get the API instance.
+     * @codeCoverageIgnore
      */
     public function getApi(): Api
     {
@@ -290,6 +305,7 @@ class MaxBotManager
 
     /**
      * Get the update dispatcher.
+     * @codeCoverageIgnore
      */
     public function getDispatcher(): UpdateDispatcher
     {

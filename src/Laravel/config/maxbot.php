@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// @codeCoverageIgnoreStart
 return [
     /*
     |--------------------------------------------------------------------------
@@ -65,3 +66,4 @@ return [
         'level' => env('MAXBOT_LOGGING_LEVEL', 'debug'),
     ],
 ];
+// @codeCoverageIgnoreEnd

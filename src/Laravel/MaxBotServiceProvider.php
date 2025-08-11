@@ -7,6 +7,7 @@ namespace BushlanovDev\MaxMessengerBot\Laravel;
 use BushlanovDev\MaxMessengerBot\Api;
 use BushlanovDev\MaxMessengerBot\Client;
 use BushlanovDev\MaxMessengerBot\ClientApiInterface;
+use BushlanovDev\MaxMessengerBot\Laravel\Commands\PollingStartCommand;
 use BushlanovDev\MaxMessengerBot\ModelFactory;
 use BushlanovDev\MaxMessengerBot\UpdateDispatcher;
 use BushlanovDev\MaxMessengerBot\WebhookHandler;
@@ -19,6 +20,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Config\Repository as Config;
 use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
+use Psr\Log\NullLogger;
 
 /**
  * Laravel Service Provider for Max Bot API Client.
@@ -37,6 +39,7 @@ class MaxBotServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(ClientApiInterface::class, function (Application $app) {
+            /** @var Config $config */
             $config = $app->make(Config::class);
             $accessToken = $config->get('maxbot.access_token');
 
@@ -52,16 +55,14 @@ class MaxBotServiceProvider extends ServiceProvider
                 );
             }
 
-            $timeout = $config->get('maxbot.timeout', 10);
-            $connectTimeout = $config->get('maxbot.connect_timeout', 5);
-            $readTimeout = $config->get('maxbot.read_timeout', 10);
-            $baseUrl = $config->get('maxbot.base_url', 'https://botapi.max.ru');
-            $apiVersion = $config->get('maxbot.api_version', Api::API_VERSION);
+            $logger = $config->get('maxbot.logging.enabled', false)
+                ? $app->make(LoggerInterface::class)
+                : new NullLogger();
 
             $guzzle = new \GuzzleHttp\Client([
-                'timeout' => $timeout,
-                'connect_timeout' => $connectTimeout,
-                'read_timeout' => $readTimeout,
+                'timeout' => (int)$config->get('maxbot.timeout', 10),
+                'connect_timeout' => (int)$config->get('maxbot.connect_timeout', 5),
+                'read_timeout' => (int)$config->get('maxbot.read_timeout', 10),
                 'headers' => [
                     'User-Agent' => 'max-bot-api-client-php/' . Api::LIBRARY_VERSION
                         . ' Laravel/' . $app->version() . ' PHP/' . PHP_VERSION
@@ -75,9 +76,9 @@ class MaxBotServiceProvider extends ServiceProvider
                 $guzzle,
                 $httpFactory,
                 $httpFactory,
-                $baseUrl,
-                $apiVersion,
-                $app->make(LoggerInterface::class),
+                $config->get('maxbot.base_url', 'https://botapi.max.ru'),
+                $config->get('maxbot.api_version', Api::API_VERSION),
+                $logger,
             );
         });
 
@@ -90,6 +91,7 @@ class MaxBotServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(Api::class, function (Application $app) {
+            /** @var Config $config */
             $config = $app->make(Config::class);
             $accessToken = $config->get('maxbot.access_token');
 
@@ -109,6 +111,7 @@ class MaxBotServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(WebhookHandler::class, function (Application $app) {
+            /** @var Config $config */
             $config = $app->make(Config::class);
             $secret = $config->get('maxbot.webhook_secret');
 
@@ -159,6 +162,7 @@ class MaxBotServiceProvider extends ServiceProvider
                 WebhookSubscribeCommand::class,
                 WebhookUnsubscribeCommand::class,
                 WebhookListCommand::class,
+                PollingStartCommand::class,
             ]);
         }
     }
