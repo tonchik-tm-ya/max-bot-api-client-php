@@ -86,10 +86,6 @@ class MaxBotServiceProvider extends ServiceProvider
             return new ModelFactory();
         });
 
-        $this->app->singleton(UpdateDispatcher::class, function (Application $app) {
-            return new UpdateDispatcher($app->make(Api::class));
-        });
-
         $this->app->singleton(Api::class, function (Application $app) {
             /** @var Config $config */
             $config = $app->make(Config::class);
@@ -106,8 +102,12 @@ class MaxBotServiceProvider extends ServiceProvider
                 $app->make(ClientApiInterface::class),
                 $app->make(ModelFactory::class),
                 $app->make(LoggerInterface::class),
-                $app->make(UpdateDispatcher::class),
+                null,
             );
+        });
+
+        $this->app->singleton(UpdateDispatcher::class, function (Application $app) {
+            return $app->make(Api::class)->getUpdateDispatcher();
         });
 
         $this->app->bind(WebhookHandler::class, function (Application $app) {
@@ -171,6 +171,7 @@ class MaxBotServiceProvider extends ServiceProvider
      * Get the services provided by the provider.
      *
      * @return array<int, string>
+     * @codeCoverageIgnore
      */
     public function provides(): array
     {
