@@ -30,6 +30,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use ReflectionClass;
 
 #[CoversClass(MaxBotServiceProvider::class)]
 #[UsesClass(Api::class)]
@@ -104,7 +105,6 @@ final class MaxBotServiceProviderTest extends TestCase
         $this->app->make(ClientApiInterface::class);
     }
 
-
     /**
      * @return array<string, array{0: string, 1: class-string}>
      */
@@ -166,7 +166,7 @@ final class MaxBotServiceProviderTest extends TestCase
         $client = $this->app->make(ClientApiInterface::class);
         $this->assertInstanceOf(Client::class, $client);
 
-        $reflection = new \ReflectionClass($client);
+        $reflection = new ReflectionClass($client);
 
         $accessTokenProp = $reflection->getProperty('accessToken');
         $baseUrlProp = $reflection->getProperty('baseUrl');
@@ -188,7 +188,7 @@ final class MaxBotServiceProviderTest extends TestCase
         /** @var Client $client */
         $client = $this->app->make(ClientApiInterface::class);
 
-        $reflection = new \ReflectionClass($client);
+        $reflection = new ReflectionClass($client);
         $loggerProp = $reflection->getProperty('logger');
         $actualLogger = $loggerProp->getValue($client);
 
@@ -203,7 +203,7 @@ final class MaxBotServiceProviderTest extends TestCase
         /** @var Client $client */
         $client = $this->app->make(ClientApiInterface::class);
 
-        $reflection = new \ReflectionClass($client);
+        $reflection = new ReflectionClass($client);
         $loggerProp = $reflection->getProperty('logger');
         $actualLogger = $loggerProp->getValue($client);
 
@@ -217,7 +217,7 @@ final class MaxBotServiceProviderTest extends TestCase
         $handler = $this->app->make(WebhookHandler::class);
         $this->assertInstanceOf(WebhookHandler::class, $handler);
 
-        $reflection = new \ReflectionClass($handler);
+        $reflection = new ReflectionClass($handler);
         $secretProp = $reflection->getProperty('secret');
 
         $this->assertSame('test-secret', $secretProp->getValue($handler));
@@ -229,7 +229,7 @@ final class MaxBotServiceProviderTest extends TestCase
         /** @var Api $api */
         $api = $this->app->make(Api::class);
 
-        $reflection = new \ReflectionClass($api);
+        $reflection = new ReflectionClass($api);
 
         $clientProp = $reflection->getProperty('client');
         $factoryProp = $reflection->getProperty('modelFactory');
@@ -262,5 +262,28 @@ final class MaxBotServiceProviderTest extends TestCase
         $commands = Artisan::all();
         $this->assertArrayHasKey($signature, $commands);
         $this->assertInstanceOf($class, $commands[$signature]);
+    }
+
+    #[Test]
+    public function providesMethod(): void
+    {
+        $provides = [
+            Api::class,
+            ClientApiInterface::class,
+            ModelFactory::class,
+            UpdateDispatcher::class,
+            WebhookHandler::class,
+            LongPollingHandler::class,
+            MaxBotManager::class,
+            'maxbot',
+            'maxbot.api',
+            'maxbot.client',
+            'maxbot.dispatcher',
+            'maxbot.webhook',
+            'maxbot.polling',
+            'maxbot.manager',
+        ];
+
+        $this->assertSame($this->app->getProvider(MaxBotServiceProvider::class)->provides(), $provides);
     }
 }

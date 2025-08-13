@@ -171,7 +171,6 @@ class MaxBotServiceProvider extends ServiceProvider
      * Get the services provided by the provider.
      *
      * @return array<int, string>
-     * @codeCoverageIgnore
      */
     public function provides(): array
     {

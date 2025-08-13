@@ -37,7 +37,7 @@ return [
     |
     */
     'base_url' => env('MAXBOT_BASE_URL', 'https://botapi.max.ru'),
-    'api_version' => env('MAXBOT_API_VERSION', '0.0.6'),
+    'api_version' => env('MAXBOT_API_VERSION'),
 
     /*
     |--------------------------------------------------------------------------
