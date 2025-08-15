@@ -102,7 +102,6 @@ class MaxBotServiceProvider extends ServiceProvider
                 $app->make(ClientApiInterface::class),
                 $app->make(ModelFactory::class),
                 $app->make(LoggerInterface::class),
-                null,
             );
         });
 

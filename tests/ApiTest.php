@@ -1980,4 +1980,16 @@ final class ApiTest extends TestCase
 
         $this->assertSame($expectedDetails, $result);
     }
+
+    #[Test]
+    public function constructorThrowsExceptionWhenNoTokenAndNoClientProvided(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You must provide either an access token or a client.');
+
+        new Api(
+            accessToken: null,
+            client: null
+        );
+    }
 }

@@ -31,7 +31,11 @@ composer require bushlanov-dev/max-bot-api-client-php
 Отправка сообщения с клавиатурой
 
 ```php
-$api = new \BushlanovDev\MaxMessengerBot\Api('YOUR_BOT_API_TOKEN');
+require __DIR__.'/vendor/autoload.php';
+
+use BushlanovDev\MaxMessengerBot\Api;
+
+$api = new Api('YOUR_BOT_API_TOKEN');
 
 $api->sendMessage(
     userId: 123,     // ID пользователя получателя сообщения
@@ -45,6 +49,26 @@ $api->sendMessage(
     ],
     format: MessageFormat::Markdown, // Формат сообщения (Markdown или HTML)
 );
+```
+
+Создание универсального обработчика обновлений
+
+```php
+$dispatcher = $api->getUpdateDispatcher();
+
+$dispatcher->onMessageCreated(function (MessageCreatedUpdate $update, Api $api) {
+    $api->sendMessage(
+        userId: $update->message->recipient->userId,
+        text: 'Привет!',
+    );
+});
+// или
+$dispatcher->addHandler(UpdateType::BotStarted, function (BotStartedUpdate $update, Api $api) {
+    $api->sendMessage(
+        chatId: $update->chatId,
+        text: 'Я запущен!',
+    );
+});
 ```
 
 Подписка на вэб хуки
@@ -61,18 +85,17 @@ $api->subscribe(
 );
 ```
 
-Обработка хуков
+Обработка обновлений
 
 ```php
-$webhookHandler = $api->createWebhookHandler();
+$handler = $api->createWebhookHandler('super_secret'); // Обновления через вебхук
+// ИЛИ
+$handler = $api->createLongPollingHandler();           // Обновления через лонгполлинг
 
-$webhookHandler->addHandler(UpdateType::BotStarted, function (BotStartedUpdate $update, Api $api) {
-    $api->sendMessage(
-        chatId: $update->chatId,
-        text: 'Я запущен!',
-    );
-});
+$handler->handle();
 ```
+
+> ℹ️ С полной документацией [вы можете ознакомиться тут](./docs/README.md).
 
 ## Реализованные методы
 

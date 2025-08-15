@@ -47,7 +47,7 @@ use RuntimeException;
  */
 class Api
 {
-    public const string LIBRARY_VERSION = '1.0.0';
+    public const string LIBRARY_VERSION = '1.0.1';
 
     public const string API_VERSION = '0.0.6';
 
@@ -85,21 +85,23 @@ class Api
     /**
      * Api constructor.
      *
-     * @param string $accessToken Your bot's access token from @MasterBot.
+     * @param string|null $accessToken Your bot's access token from @MasterBot.
      * @param ClientApiInterface|null $client Http api client.
      * @param ModelFactory|null $modelFactory The model factory.
      * @param LoggerInterface|null $logger PSR LoggerInterface.
-     * @param UpdateDispatcher|null $updateDispatcher The update dispatcher.
      *
      * @throws InvalidArgumentException
      */
     public function __construct(
-        string $accessToken,
+        ?string $accessToken = null,
         ?ClientApiInterface $client = null,
         ?ModelFactory $modelFactory = null,
         ?LoggerInterface $logger = null,
-        ?UpdateDispatcher $updateDispatcher = null,
     ) {
+        if (empty($accessToken) && $client === null) {
+            throw new InvalidArgumentException('You must provide either an access token or a client.');
+        }
+
         $this->logger = $logger ?? new NullLogger();
 
         if ($client === null) {
@@ -130,7 +132,7 @@ class Api
 
         $this->client = $client;
         $this->modelFactory = $modelFactory ?? new ModelFactory();
-        $this->updateDispatcher = $updateDispatcher ?? new UpdateDispatcher($this);
+        $this->updateDispatcher = new UpdateDispatcher($this);
     }
 
     /**

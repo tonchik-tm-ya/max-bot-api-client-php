@@ -35,15 +35,11 @@ final class ApiFactoryMethodsTest extends TestCase
         $this->modelFactoryMock = $this->createMock(ModelFactory::class);
         $this->loggerMock = $this->createMock(LoggerInterface::class);
 
-        $apiForDispatcher = $this->createMock(Api::class);
-        $dispatcher = new UpdateDispatcher($apiForDispatcher);
-
         $this->api = new Api(
             'fake-token',
             $this->clientMock,
             $this->modelFactoryMock,
             $this->loggerMock,
-            $dispatcher,
         );
     }
 
