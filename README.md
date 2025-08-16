@@ -26,6 +26,20 @@
 composer require bushlanov-dev/max-bot-api-client-php
 ```
 
+Пользователи Laravel могут зарегистрировать сервис провайдер и фасад в `config/app.php`:
+
+```php
+'providers' => [
+    // ...
+    BushlanovDev\MaxMessengerBot\Laravel\MaxBotServiceProvider::class,
+],
+// ...
+'aliases' => [
+    // ...
+    'MaxBot' => BushlanovDev\MaxMessengerBot\Laravel\MaxBotFacade::class,
+],
+```
+
 ### Использование
 
 Отправка сообщения с клавиатурой
@@ -49,6 +63,12 @@ $api->sendMessage(
     ],
     format: MessageFormat::Markdown, // Формат сообщения (Markdown или HTML)
 );
+```
+
+Отправка сообщения с использованием фасада Laravel
+
+```php
+MaxBot::sendUserMessage(123456, 'Привет из Laravel!');
 ```
 
 Создание универсального обработчика обновлений
@@ -101,12 +121,12 @@ $handler->handle();
 
 #### Bots
 
-- [x] `GET /me` (`getBotInfo`) - *Получение информации о боте.*
-- [x] `PATCH /me` (`editBotInfo`) - *Редактирование информации о боте.*
+- [x] `GET /me` (`getBotInfo`) - [*Получение информации о боте.*](./docs/README.md#Получение-информации-о-боте)
+- [x] `PATCH /me` (`editBotInfo`) - [*Редактирование информации о боте.*](./docs/README.md#Редактирование-информации-о-боте)
 
 #### Chats
 
-- [x] `GET /chats` (`getChats`) - *Получение списка всех чатов бота.*
+- [x] `GET /chats` (`getChats`) - [*Получение списка всех чатов бота.*](./docs/README.md#Получение-списка-всех-чатов-бота)
 - [x] `GET /chats/{chatLink}` (`getChatByLink`) - *Получение информации о чате по ссылке.*
 - [x] `GET /chats/{chatId}` (`getChat`) - *Получение информации о чате по ID.*
 - [x] `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*

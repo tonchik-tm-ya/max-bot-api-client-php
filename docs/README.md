@@ -1,12 +1,13 @@
 - [Быстрый старт](#Быстрый-старт)
     - [Получение токена](#Получение-токена)
     - [Установка библиотеки](#Установка-библиотеки)
+    - [Установка библиотеки в Laravel](#Установка-библиотеки-в-Laravel)
     - [Инициализация бота](#Инициализация-бота)
 - [Информация о боте](#Информация-о-боте)
     - `GET /me` (`getBotInfo`) - [*Получение информации о боте.*](#Получение-информации-о-боте)
     - `PATCH /me` (`editBotInfo`) - [*Редактирование информации о боте.*](#Редактирование-информации-о-боте)
-- Чаты
-    - `GET /chats` (`getChats`) - *Получение списка всех чатов бота.*
+- [Чаты](#Чаты)
+    - `GET /chats` (`getChats`) - [*Получение списка всех чатов бота.*](#Получение-списка-всех-чатов-бота)
     - `GET /chats/{chatLink}` (`getChatByLink`) - *Получение информации о чате по ссылке.*
     - `GET /chats/{chatId}` (`getChat`) - *Получение информации о чате по ID.*
     - `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*
@@ -54,6 +55,36 @@
 composer require bushlanov-dev/max-bot-api-client-php
 ```
 
+### Установка библиотеки в Laravel
+
+Пользователи Laravel могут зарегистрировать сервис провайдер и фасад в `config/app.php`:
+
+```php
+'providers' => [
+    // ...
+    BushlanovDev\MaxMessengerBot\Laravel\MaxBotServiceProvider::class,
+],
+// ...
+'aliases' => [
+    // ...
+    'MaxBot' => BushlanovDev\MaxMessengerBot\Laravel\MaxBotFacade::class,
+],
+```
+
+При не необходимости опубликовать конфиг выполните следующую команду
+
+```bash
+php artisan vendor:publish --provider="BushlanovDev\MaxMessengerBot\Laravel\MaxBotServiceProvider"
+```
+
+Для работы вам потребуется внести следующие настройки в `.env`
+
+```env
+MAXBOT_ACCESS_TOKEN=your_bot_access_token_here
+MAXBOT_WEBHOOK_SECRET=your_webhook_secret_here
+MAXBOT_LOGGING_ENABLED=true
+```
+
 ### Инициализация бота
 
 Единственной обязательной настройкой является токен вашего бота.  
@@ -98,5 +129,16 @@ $botInfo = $api->editBotInfo(
         name: 'Супер бот',
         description: null,
     )
+);
+```
+
+## Чаты
+
+### Получение списка всех чатов бота
+
+```php
+$api->getChats(
+    count: 10, // Количество запрашиваемых чатов
+    marker: 2, // Указатель на следующую страницу данных. Для первой страницы передайте null
 );
 ```
