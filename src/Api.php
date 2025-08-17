@@ -874,7 +874,7 @@ class Api
      * @throws ReflectionException
      * @throws SerializationException
      */
-    public function deleteAdmins(int $chatId, int $userId): Result
+    public function deleteAdmin(int $chatId, int $userId): Result
     {
         return $this->modelFactory->createResult(
             $this->client->request(

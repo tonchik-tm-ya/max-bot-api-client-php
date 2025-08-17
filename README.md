@@ -127,19 +127,19 @@ $handler->handle();
 #### Chats
 
 - [x] `GET /chats` (`getChats`) - [*Получение списка всех чатов бота.*](./docs/README.md#Получение-списка-всех-чатов-бота)
-- [x] `GET /chats/{chatLink}` (`getChatByLink`) - *Получение информации о чате по ссылке.*
-- [x] `GET /chats/{chatId}` (`getChat`) - *Получение информации о чате по ID.*
-- [x] `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*
-- [x] `DELETE /chats/{chatId}` (`deleteChat`) - *Удаление чата.*
-- [x] `POST /chats/{chatId}/actions` (`sendAction`) - *Отправка действия в чат (например, "печатает...").*
-- [x] `GET /chats/{chatId}/pin` (`getPinnedMessage`) - *Получение закрепленного сообщения.*
-- [x] `PUT /chats/{chatId}/pin` (`pinMessage`) - *Закрепление сообщения.*
-- [x] `DELETE /chats/{chatId}/pin` (`unpinMessage`) - *Открепление сообщения.*
-- [x] `GET /chats/{chatId}/members/me` (`getMembership`) - *Получение информации о членстве бота в чате.*
-- [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) - *Выход бота из чата.*
-- [x] `GET /chats/{chatId}/members/admins` (`getAdmins`) - *Получение администраторов чата.*
-- [x] `POST /chats/{chatId}/members/admins` (`addAdmins`) - *Назначение администраторов чата.*
-- [x] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - *Снятие прав администратора.*
+- [x] `GET /chats/{chatLink}` (`getChatByLink`) - [*Получение информации о чате по ссылке.*](./docs/README.md#Получение-информации-о-чате-по-ссылке)
+- [x] `GET /chats/{chatId}` (`getChat`) - [*Получение информации о чате по ID.*](./docs/README.md#Получение-информации-о-чате-по-ID)
+- [x] `PATCH /chats/{chatId}` (`editChat`) - [*Редактирование информации о чате.*](./docs/README.md#Редактирование-информации-о-чате)
+- [x] `DELETE /chats/{chatId}` (`deleteChat`) - [*Удаление чата.*](./docs/README.md#Удаление-чата)
+- [x] `POST /chats/{chatId}/actions` (`sendAction`) - [*Отправка действия в чат (например, "печатает...").*](./docs/README.md#Отправка-действия-в-чат)
+- [x] `GET /chats/{chatId}/pin` (`getPinnedMessage`) - [*Получение закрепленного сообщения.*](./docs/README.md#Получение-закрепленного-сообщения)
+- [x] `PUT /chats/{chatId}/pin` (`pinMessage`) - [*Закрепление сообщения.*](./docs/README.md#Закрепление-сообщения)
+- [x] `DELETE /chats/{chatId}/pin` (`unpinMessage`) - [*Открепление сообщения.*](./docs/README.md#Открепление-сообщения)
+- [x] `GET /chats/{chatId}/members/me` (`getMembership`) - [*Получение информации о членстве бота в чате.*](./docs/README.md#Получение-информации-о-членстве-бота-в-чате)
+- [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) - [*Выход бота из чата.*](./docs/README.md#Выход-бота-из-чата)
+- [x] `GET /chats/{chatId}/members/admins` (`getAdmins`) - [*Получение администраторов чата.*](./docs/README.md#Получение-администраторов-чата)
+- [x] `POST /chats/{chatId}/members/admins` (`addAdmins`) - [*Назначение администраторов чата.*](./docs/README.md#Назначение-администраторов-чата)
+- [x] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - [*Снятие прав администратора.*](./docs/README.md#Снятие-прав-администратора)
 - [x] `GET /chats/{chatId}/members` (`getMembers`) - *Получение участников чата.*
 - [x] `POST /chats/{chatId}/members` (`addMembers`) - *Добавление участников в чат.*
 - [x] `DELETE /chats/{chatId}/members` (`deleteMember`) - *Удаление участника из чата.*

@@ -1595,7 +1595,7 @@ final class ApiTest extends TestCase
             ->with($rawResponse)
             ->willReturn($expectedResult);
 
-        $result = $this->api->deleteAdmins($chatId, $userId);
+        $result = $this->api->deleteAdmin($chatId, $userId);
 
         $this->assertSame($expectedResult, $result);
     }

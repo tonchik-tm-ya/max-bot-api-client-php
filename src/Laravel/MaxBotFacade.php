@@ -64,7 +64,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static Result pinMessage(int $chatId, string $messageId, bool $notify = true)
  * @method static ChatMembersList getAdmins(int $chatId)
  * @method static ChatMembersList getMembers(int $chatId, ?array<int> $userIds = null, ?int $marker = null, ?int $count = null)
- * @method static Result deleteAdmins(int $chatId, int $userId)
+ * @method static Result deleteAdmin(int $chatId, int $userId)
  * @method static Result deleteMember(int $chatId, int $userId, bool $block = false)
  * @method static Result addAdmins(int $chatId, array<ChatAdmin> $admins)
  * @method static Result addMembers(int $chatId, array<int> $userIds)

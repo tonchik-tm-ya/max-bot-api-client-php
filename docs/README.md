@@ -8,19 +8,19 @@
     - `PATCH /me` (`editBotInfo`) - [*Редактирование информации о боте.*](#Редактирование-информации-о-боте)
 - [Чаты](#Чаты)
     - `GET /chats` (`getChats`) - [*Получение списка всех чатов бота.*](#Получение-списка-всех-чатов-бота)
-    - `GET /chats/{chatLink}` (`getChatByLink`) - *Получение информации о чате по ссылке.*
-    - `GET /chats/{chatId}` (`getChat`) - *Получение информации о чате по ID.*
-    - `PATCH /chats/{chatId}` (`editChat`) - *Редактирование информации о чате.*
-    - `DELETE /chats/{chatId}` (`deleteChat`) - *Удаление чата.*
-    - `POST /chats/{chatId}/actions` (`sendAction`) - *Отправка действия в чат (например, "печатает...").*
-    - `GET /chats/{chatId}/pin` (`getPinnedMessage`) - *Получение закрепленного сообщения.*
-    - `PUT /chats/{chatId}/pin` (`pinMessage`) - *Закрепление сообщения.*
-    - `DELETE /chats/{chatId}/pin` (`unpinMessage`) - *Открепление сообщения.*
-    - `GET /chats/{chatId}/members/me` (`getMembership`) - *Получение информации о членстве бота в чате.*
-    - `DELETE /chats/{chatId}/members/me` (`leaveChat`) - *Выход бота из чата.*
-    - `GET /chats/{chatId}/members/admins` (`getAdmins`) - *Получение администраторов чата.*
-    - `POST /chats/{chatId}/members/admins` (`addAdmins`) - *Назначение администраторов чата.*
-    - `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - *Снятие прав администратора.*
+    - `GET /chats/{chatLink}` (`getChatByLink`) - [*Получение информации о чате по ссылке.*](#Получение-информации-о-чате-по-ссылке)
+    - `GET /chats/{chatId}` (`getChat`) - [*Получение информации о чате по ID.*](#Получение-информации-о-чате-по-ID)
+    - `PATCH /chats/{chatId}` (`editChat`) - [*Редактирование информации о чате.*](#Редактирование-информации-о-чате)
+    - `DELETE /chats/{chatId}` (`deleteChat`) - [*Удаление чата.*](#Удаление-чата)
+    - `POST /chats/{chatId}/actions` (`sendAction`) - [*Отправка действия в чат (например, "печатает...").*](#Отправка-действия-в-чат)
+    - `GET /chats/{chatId}/pin` (`getPinnedMessage`) - [*Получение закрепленного сообщения.*](#Получение-закрепленного-сообщения)
+    - `PUT /chats/{chatId}/pin` (`pinMessage`) - [*Закрепление сообщения.*](#Закрепление-сообщения)
+    - `DELETE /chats/{chatId}/pin` (`unpinMessage`) - [*Открепление сообщения.*](#Открепление-сообщения)
+    - `GET /chats/{chatId}/members/me` (`getMembership`) - [*Получение информации о членстве бота в чате.*](#Получение-информации-о-членстве-бота-в-чате)
+    - `DELETE /chats/{chatId}/members/me` (`leaveChat`) - [*Выход бота из чата.*](#Выход-бота-из-чата)
+    - `GET /chats/{chatId}/members/admins` (`getAdmins`) - [*Получение администраторов чата.*](#Получение-администраторов-чата)
+    - `POST /chats/{chatId}/members/admins` (`addAdmins`) - [*Назначение администраторов чата.*](#Назначение-администраторов-чата)
+    - `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - [*Снятие прав администратора.*](#Снятие-прав-администратора)
     - `GET /chats/{chatId}/members` (`getMembers`) - *Получение участников чата.*
     - `POST /chats/{chatId}/members` (`addMembers`) - *Добавление участников в чат.*
     - `DELETE /chats/{chatId}/members` (`deleteMember`) - *Удаление участника из чата.*
@@ -137,8 +137,107 @@ $botInfo = $api->editBotInfo(
 ### Получение списка всех чатов бота
 
 ```php
-$api->getChats(
+$chats = $api->getChats(
     count: 10, // Количество запрашиваемых чатов
     marker: 2, // Указатель на следующую страницу данных. Для первой страницы передайте null
+);
+```
+
+### Получение информации о чате по ссылке
+
+```php
+$chat = $api->getChatByLink('@super_chat'); // Публичная ссылка на чат или username пользователя
+```
+
+### Получение информации о чате по ID
+
+```php
+$chat = $api->getChat(12345);
+```
+
+### Редактирование информации о чате
+
+```php
+$chat = $api->editChat(
+    chatId: 12345,
+    chatPatch: new ChatPatch(
+        title: 'Новое название чата',
+    ),
+);
+```
+
+### Удаление чата
+
+```php
+$api->deleteChat(12345);
+```
+
+### Отправка действия в чат
+
+```php
+$api->sendAction(
+    chatId: 12345,
+    action: SenderAction::SendingVideo,
+);
+```
+
+### Получение закрепленного сообщения
+
+```php
+$message = $api->getPinnedMessage(12345);
+```
+
+### Закрепление сообщения
+
+```php
+$api->pinMessage(
+    chatId: 12345,
+    messageId: 54321,
+    notify: true,
+);
+```
+
+### Открепление сообщения
+
+```php
+$api->unpinMessage(12345);
+```
+
+### Получение информации о членстве бота в чате
+
+```php
+$chatMember = $api->getMembership(12345);
+```
+
+### Выход бота из чата
+
+```php
+$api->leaveChat(12345);
+```
+
+### Получение администраторов чата
+
+```php
+$adminsChatMemberList = $api->getAdmins(12345);
+```
+
+### Назначение администраторов чата
+
+```php
+$chatMemberList = $api->addAdmins(
+    chatId: 12345,
+    admins: [
+        new ChatAdmin(123, [ChatAdminPermission::ReadAllMessages]),
+        new ChatAdmin(456, [ChatAdminPermission::Write]),
+    ],
+);
+```
+
+### Снятие прав администратора
+
+```php
+$api->deleteAdmin(
+    chatId: 12345,
+    userId: 123,
 );
 ```
