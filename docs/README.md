@@ -19,16 +19,16 @@
     - `GET /chats/{chatId}/members/me` (`getMembership`) - [*Получение информации о членстве бота в чате.*](#Получение-информации-о-членстве-бота-в-чате)
     - `DELETE /chats/{chatId}/members/me` (`leaveChat`) - [*Выход бота из чата.*](#Выход-бота-из-чата)
     - `GET /chats/{chatId}/members/admins` (`getAdmins`) - [*Получение администраторов чата.*](#Получение-администраторов-чата)
-    - `POST /chats/{chatId}/members/admins` (`addAdmins`) - [*Назначение администраторов чата.*](#Назначение-администраторов-чата)
+    - `POST /chats/{chatId}/members/admins` (`addAdmin`) - [*Назначение администраторов чата.*](#Назначение-администраторов-чата)
     - `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - [*Снятие прав администратора.*](#Снятие-прав-администратора)
-    - `GET /chats/{chatId}/members` (`getMembers`) - *Получение участников чата.*
-    - `POST /chats/{chatId}/members` (`addMembers`) - *Добавление участников в чат.*
-    - `DELETE /chats/{chatId}/members` (`deleteMember`) - *Удаление участника из чата.*
+    - `GET /chats/{chatId}/members` (`getMembers`) - [*Получение участников чата.*](#Получение-участников-чата)
+    - `POST /chats/{chatId}/members` (`addMembers`) - [*Добавление участников в чат.*](#Добавление-участников-в-чат)
+    - `DELETE /chats/{chatId}/members` (`deleteMember`) -[*Удаление участника из чата.*](#Удаление-участника-из-чата)
 - Получение обновлений
-    - `GET /subscriptions` (`getSubscriptions`) - *Получение списка Webhook-подписок.*
-    - `POST /subscriptions` (`subscribe`) - *Создание Webhook-подписки.*
-    - `DELETE /subscriptions` (`unsubscribe`) - *Удаление Webhook-подписки.*
-    - `GET /updates` (`getUpdates`) - *Получение обновлений через Long-Polling.*
+    - `GET /subscriptions` (`getSubscriptions`) - [*Получение списка Webhook-подписок.*](#Получение-списка-Webhook-подписок)
+    - `POST /subscriptions` (`subscribe`) - [*Создание Webhook-подписки.*](#Создание-Webhook-подписки)
+    - `DELETE /subscriptions` (`unsubscribe`) - [*Удаление Webhook-подписки.*](#Удаление-Webhook-подписки)
+    - `GET /updates` (`getUpdates`) - [*Получение обновлений через Long-Polling.*](#Получение-обновлений-через-Long-Polling)
 - Загрузка файлов
     - `POST /uploads` (`getUploadUrl`) - *Получение URL для загрузки файла.*
 - Сообщения
@@ -239,5 +239,63 @@ $chatMemberList = $api->addAdmins(
 $api->deleteAdmin(
     chatId: 12345,
     userId: 123,
+);
+```
+
+### Получение участников чата
+
+```php
+$chatMemberList = $api->getMembers(12345);
+```
+
+### Добавление участников в чат
+
+```php
+$api->addMembers(
+    chatId: 12345,
+    userIds: [123, 456],
+);
+``` 
+
+### Удаление участника из чата
+
+```php
+$api->deleteMember(
+    chatId: 12345,
+    userId: 123,
+    block: true, // Пользователь будет заблокирован в чате
+);
+```
+
+### Получение списка Webhook-подписок
+
+```php
+$subscriptions = $api->getSubscriptions();
+```
+
+### Создание Webhook-подписки
+
+```php
+$api->subscribe(
+    url: 'https://example.com/webhook',        // URL на который будут приходить хуки. Должен начинаться с http(s)://
+    secret: 'super_secret',                    // Секретная фраза для проверки хуков (необязательно)
+    updateTypes: [UpdateType::MessageCreated], // Типы хуков которые вы хотите получать (либо ничего не указывать, чтобы получать все)
+);
+```
+
+### Удаление Webhook-подписки
+
+```php
+$api->unsubscribe('https://example.com/webhook');
+```
+
+### Получение обновлений через Long-Polling
+
+```php
+$updateList = $api->getUpdates(
+    limit: 10,                           // Максимальное количество обновлений для получения [1-1000] (необязательно) 
+    timeout: 10,                         // Таймаут в секундах [0-90] (необязательно)
+    marker: 123,                         // Если передан, бот получит обновления, которые еще не были получены (необязательно)
+    types: [UpdateType::MessageCreated], // Типы обновлений которые вы хотите получать (необязательно)
 );
 ```

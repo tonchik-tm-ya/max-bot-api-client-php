@@ -139,17 +139,17 @@ $handler->handle();
 - [x] `DELETE /chats/{chatId}/members/me` (`leaveChat`) - [*Выход бота из чата.*](./docs/README.md#Выход-бота-из-чата)
 - [x] `GET /chats/{chatId}/members/admins` (`getAdmins`) - [*Получение администраторов чата.*](./docs/README.md#Получение-администраторов-чата)
 - [x] `POST /chats/{chatId}/members/admins` (`addAdmins`) - [*Назначение администраторов чата.*](./docs/README.md#Назначение-администраторов-чата)
-- [x] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmins`) - [*Снятие прав администратора.*](./docs/README.md#Снятие-прав-администратора)
-- [x] `GET /chats/{chatId}/members` (`getMembers`) - *Получение участников чата.*
-- [x] `POST /chats/{chatId}/members` (`addMembers`) - *Добавление участников в чат.*
-- [x] `DELETE /chats/{chatId}/members` (`deleteMember`) - *Удаление участника из чата.*
+- [x] `DELETE /chats/{chatId}/members/admins/{userId}` (`deleteAdmin`) - [*Снятие прав администратора.*](./docs/README.md#Снятие-прав-администратора)
+- [x] `GET /chats/{chatId}/members` (`getMembers`) - [*Получение участников чата.*](./docs/README.md#Получение-участников-чата)
+- [x] `POST /chats/{chatId}/members` (`addMembers`) - [*Добавление участников в чат.*](./docs/README.md#Добавление-участников-в-чат)
+- [x] `DELETE /chats/{chatId}/members` (`deleteMember`) - [*Удаление участника из чата.*](./docs/README.md#Удаление-участника-из-чата)
 
 #### Subscriptions
 
-- [x] `GET /subscriptions` (`getSubscriptions`) - *Получение списка Webhook-подписок.*
-- [x] `POST /subscriptions` (`subscribe`) - *Создание Webhook-подписки.*
-- [x] `DELETE /subscriptions` (`unsubscribe`) - *Удаление Webhook-подписки.*
-- [x] `GET /updates` (`getUpdates`) - *Получение обновлений через Long-Polling.*
+- [x] `GET /subscriptions` (`getSubscriptions`) - [*Получение списка Webhook-подписок.*](./docs/README.md#Получение-списка-Webhook-подписок)
+- [x] `POST /subscriptions` (`subscribe`) - [*Создание Webhook-подписки.*](./docs/README.md#Создание-Webhook-подписки)
+- [x] `DELETE /subscriptions` (`unsubscribe`) - [*Удаление Webhook-подписки.*](./docs/README.md#Удаление-Webhook-подписки)
+- [x] `GET /updates` (`getUpdates`) - [*Получение обновлений через Long-Polling.*](./docs/README.md#Получение-обновлений-через-Long-Polling)
 
 #### Upload
 
