@@ -24,21 +24,21 @@
     - `GET /chats/{chatId}/members` (`getMembers`) - [*Получение участников чата.*](#Получение-участников-чата)
     - `POST /chats/{chatId}/members` (`addMembers`) - [*Добавление участников в чат.*](#Добавление-участников-в-чат)
     - `DELETE /chats/{chatId}/members` (`deleteMember`) -[*Удаление участника из чата.*](#Удаление-участника-из-чата)
-- Получение обновлений
+- [Получение обновлений](#Получение-обновлений)
     - `GET /subscriptions` (`getSubscriptions`) - [*Получение списка Webhook-подписок.*](#Получение-списка-Webhook-подписок)
     - `POST /subscriptions` (`subscribe`) - [*Создание Webhook-подписки.*](#Создание-Webhook-подписки)
     - `DELETE /subscriptions` (`unsubscribe`) - [*Удаление Webhook-подписки.*](#Удаление-Webhook-подписки)
     - `GET /updates` (`getUpdates`) - [*Получение обновлений через Long-Polling.*](#Получение-обновлений-через-Long-Polling)
-- Загрузка файлов
-    - `POST /uploads` (`getUploadUrl`) - *Получение URL для загрузки файла.*
-- Сообщения
-    - `GET /messages` (`getMessages`) - *Получение списка сообщений из чата.*
-    - `POST /messages` (`sendMessage`) - *Отправка сообщения.*
-    - `PUT /messages` (`editMessage`) - *Редактирование сообщения.*
-    - `DELETE /messages` (`deleteMessage`) - *Удаление сообщения.*
-    - `GET /messages/{messageId}` (`getMessageById`) - *Получение сообщения по ID.*
-    - `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - *Получение детальной информации о видео.*
-    - `POST /answers` (`answerOnCallback`) - *Ответ на нажатие callback-кнопки.*
+- [Загрузка файлов](#Загрузка-файлов)
+    - `POST /uploads` (`getUploadUrl`) - [*Получение URL для загрузки файла.*](#Получение-URL-для-загрузки-файла)
+- [Сообщения](#Сообщения)
+    - `GET /messages` (`getMessages`) - [*Получение списка сообщений из чата.*](#Получение-списка-сообщений-из-чата)
+    - `POST /messages` (`sendMessage`) - [*Отправка сообщения.*](#Отправка-сообщения)
+    - `PUT /messages` (`editMessage`) - [*Редактирование сообщения.*](#Редактирование-сообщения)
+    - `DELETE /messages` (`deleteMessage`) - [*Удаление сообщения.*](#Удаление-сообщения)
+    - `GET /messages/{messageId}` (`getMessageById`) - [*Получение сообщения по ID.*](#Получение-сообщения-по-ID)
+    - `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - [*Получение детальной информации о видео.*](#Получение-детальной-информации-о-видео)
+    - `POST /answers` (`answerOnCallback`) - [*Ответ на нажатие callback-кнопки.*](#Ответ-на-нажатие-callback-кнопки)
 
 ## Быстрый старт
 
@@ -267,6 +267,8 @@ $api->deleteMember(
 );
 ```
 
+## Получение обновлений
+
 ### Получение списка Webhook-подписок
 
 ```php
@@ -297,5 +299,96 @@ $updateList = $api->getUpdates(
     timeout: 10,                         // Таймаут в секундах [0-90] (необязательно)
     marker: 123,                         // Если передан, бот получит обновления, которые еще не были получены (необязательно)
     types: [UpdateType::MessageCreated], // Типы обновлений которые вы хотите получать (необязательно)
+);
+```
+
+## Загрузка файлов
+
+### Получение URL для загрузки файла
+
+```php
+$uploadEndpoint = $api->getUploadUrl(UploadType::Video);
+```
+
+## Сообщения
+
+### Получение списка сообщений из чата
+
+```php
+$messages = $api->getMessages(
+    chatId: 12345,          // ID чата, чтобы получить сообщения из определённого чата (необязательно)
+    messageIds: [123, 456], // Список ID сообщений, которые нужно получить (необязательно)
+    from: 10,               // Время начала для запрашиваемых сообщений [Unix timestamp] (необязательно)
+    to: 20,                 // Время окончания для запрашиваемых сообщений [Unix timestamp] (необязательно)
+    count: 10,              // Максимальное количество сообщений в ответе [1-100] (необязательно)
+);
+```
+
+### Отправка сообщения
+
+```php
+$message = $api->sendMessage(
+    userId: 12345,                      // Если вы отправляете сообщение пользователю, укажите его ID (необязательно)
+    chatId: 54321,                      // Если сообщение отправляется в чат, укажите его ID (необязательно)
+    text: 'Привет мир!',                // Текст сообщения (необязательно)
+    attachments: [                      // Прикрепленные элементы (необязательно)
+        PhotoAttachmentRequest::fromUrl('https://example.com/image.jpg'),
+        new LocationAttachmentRequest(
+            latitude: 55.7520233,
+            longitude: 37.6174994,
+        ),
+    ],
+    format: MessageFormat::Markdown,    // Формат сообщения Markdown или HTML (необязательно)
+    link: null,                         // Ссылка на сообщение (необязательно)
+    notify: true,                       // Если false, участники чата не будут уведомлены (необязательно)
+    disableLinkPreview: false,          // Если false, сервер не будет генерировать превью для ссылок в тексте сообщения (необязательно)
+);
+```
+
+### Редактирование сообщения
+
+```php
+$api->editMessage(
+    messageId: 12345,
+    text: 'Привет мир!',
+    attachments: null,
+    format: null,
+    link: null,
+    notify: true,
+);
+```
+
+### Удаление сообщения
+
+```php
+$api->deleteMessage(12345);
+```
+
+### Получение сообщения по ID
+
+```php
+$message = $api->getMessageById(12345);
+```
+
+### Получение детальной информации о видео
+
+```php
+$videoAttachmentDetails = $api->getVideoAttachmentDetails('some-video-token');
+```
+
+### Ответ на нажатие callback-кнопки
+
+Этот метод используется для отправки ответа после того, как пользователь нажал на кнопку.  
+Ответом может быть обновленное сообщение и/или одноразовое уведомление для пользователя.
+
+```php
+$api->answerOnCallback(
+    callbackId: 'some-callback-id',    // Идентификатор кнопки, по которой пользователь кликнул
+    notification: 'some-notification', // Заполните это, если хотите просто отправить одноразовое уведомление пользователю (необязательно)
+    text: 'some-text',                 // Новый текст сообщения (необязательно)
+    attachments: null,                 // Вложения сообщения. Если пусто, все вложения будут удалены (необязательно)
+    link: null,                        // Ссылка на сообщение (необязательно)
+    format: null,                      // Формат сообщения Markdown или HTML (необязательно)
+    notify: true,                      // Заполните это, если хотите просто отправить одноразовое уведомление пользователю (необязательно)
 );
 ```

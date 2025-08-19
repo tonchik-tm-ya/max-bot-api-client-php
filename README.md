@@ -153,17 +153,17 @@ $handler->handle();
 
 #### Upload
 
-- [x] `POST /uploads` (`getUploadUrl`) - *Получение URL для загрузки файла.*
+- [x] `POST /uploads` (`getUploadUrl`) - [*Получение URL для загрузки файла.*](./docs/README.md#Получение-URL-для-загрузки-файла)
 
 #### Messages
 
-- [x] `GET /messages` (`getMessages`) - *Получение списка сообщений из чата.*
-- [x] `POST /messages` (`sendMessage`) - *Отправка сообщения.*
-- [x] `PUT /messages` (`editMessage`) - *Редактирование сообщения.*
-- [x] `DELETE /messages` (`deleteMessage`) - *Удаление сообщения.*
-- [x] `GET /messages/{messageId}` (`getMessageById`) - *Получение сообщения по ID.*
-- [x] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - *Получение детальной информации о видео.*
-- [x] `POST /answers` (`answerOnCallback`) - *Ответ на нажатие callback-кнопки.*
+- [x] `GET /messages` (`getMessages`) - [*Получение списка сообщений из чата.*](./docs/README.md#Получение-списка-сообщений-из-чата)
+- [x] `POST /messages` (`sendMessage`) - [*Отправка сообщения.*](./docs/README.md#Отправка-сообщения)
+- [x] `PUT /messages` (`editMessage`) - [*Редактирование сообщения.*](./docs/README.md#Редактирование-сообщения)
+- [x] `DELETE /messages` (`deleteMessage`) - [*Удаление сообщения.*](./docs/README.md#Удаление-сообщения)
+- [x] `GET /messages/{messageId}` (`getMessageById`) - [*Получение сообщения по ID.*](./docs/README.md#Получение-сообщения-по-ID)
+- [x] `GET /videos/{videoToken}` (`getVideoAttachmentDetails`) - [*Получение детальной информации о видео.*](./docs/README.md#Получение-детальной-информации-о-видео)
+- [x] `POST /answers` (`answerOnCallback`) - [*Ответ на нажатие callback-кнопки.*](./docs/README.md#Ответ-на-нажатие-callback-кнопки)
 
 ## Лицензия
 
