@@ -314,7 +314,7 @@ final class ClientTest extends TestCase
         $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
 
         $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
-        $this->assertSame($responsePayload, $result);
+        $this->assertSame(json_encode($responsePayload), $result);
     }
 
     #[Test]
@@ -338,7 +338,7 @@ final class ClientTest extends TestCase
 
         $result = $this->client->upload($uploadUrl, $tmpFileHandle, $fileName);
 
-        $this->assertSame($responsePayload, $result);
+        $this->assertSame(json_encode($responsePayload), $result);
         fclose($tmpFileHandle);
     }
 
@@ -358,26 +358,6 @@ final class ClientTest extends TestCase
             ->with($this->requestMock)
             ->willThrowException($psrException);
 
-        $this->client->upload('http://some.url', 'content', 'file.txt');
-    }
-
-    #[Test]
-    public function uploadThrowsSerializationExceptionOnInvalidJsonResponse(): void
-    {
-        $this->expectException(SerializationException::class);
-        $this->expectExceptionMessage('Failed to decode upload server response JSON.');
-
-        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
-        $this->requestMock->method('withHeader')->willReturn($this->requestMock);
-        $this->requestMock->method('withBody')->willReturn($this->requestMock);
-
-        $this->httpClientMock
-            ->method('sendRequest')
-            ->with($this->requestMock)
-            ->willReturn($this->responseMock);
-
-        $this->responseMock->method('getStatusCode')->willReturn(200);
-        $this->streamMock->method('__toString')->willReturn('{not-a-valid-json');
         $this->client->upload('http://some.url', 'content', 'file.txt');
     }
 
@@ -408,5 +388,25 @@ final class ClientTest extends TestCase
         $this->expectException(NotFoundException::class);
 
         $this->client->request('GET', '/not/found');
+    }
+
+    #[Test]
+    public function uploadMethodReturnsRawStringResponse(): void
+    {
+        $uploadUrl = 'https://upload.server/path';
+        $fileContents = 'data';
+        $fileName = 'file.txt';
+        $rawResponse = '<retval>1</retval>';
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withHeader')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturn($this->requestMock);
+        $this->httpClientMock->method('sendRequest')->willReturn($this->responseMock);
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn($rawResponse);
+
+        $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
+        $this->assertSame($rawResponse, $result);
     }
 }
