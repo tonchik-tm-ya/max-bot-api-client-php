@@ -32,10 +32,10 @@ interface ClientApiInterface
      * @param resource|string $fileContents File content (stream resource or string).
      * @param string $fileName The name of the file that will be sent to the server.
      *
-     * @return array<string, mixed>
+     * @return string The raw response body from the upload server.
      * @throws ClientApiException
      * @throws NetworkException
      * @throws SerializationException
      */
-    public function upload(string $uri, mixed $fileContents, string $fileName): array;
+    public function upload(string $uri, mixed $fileContents, string $fileName): string;
 }

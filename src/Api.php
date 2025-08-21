@@ -33,6 +33,7 @@ use BushlanovDev\MaxMessengerBot\Models\UpdateList;
 use BushlanovDev\MaxMessengerBot\Models\UploadEndpoint;
 use BushlanovDev\MaxMessengerBot\Models\VideoAttachmentDetails;
 use InvalidArgumentException;
+use JsonException;
 use LogicException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -470,27 +471,51 @@ class Api
 
         $uploadEndpoint = $this->getUploadUrl($type);
 
-        $uploadResult = $this->client->upload(
-            $uploadEndpoint->url,
-            $fileHandle,
-            basename($filePath),
-        );
+        // For audio and video, the token is received *before* the upload
+        // The actual upload response is not JSON and can be ignored on success
+        if ($type === UploadType::Audio || $type === UploadType::Video) {
+            if (empty($uploadEndpoint->token)) {
+                throw new SerializationException(
+                    "API did not return a pre-upload token for type '$type->value'."
+                );
+            }
+            $this->client->upload($uploadEndpoint->url, $fileHandle, basename($filePath));
+            fclose($fileHandle);
 
-        fclose($fileHandle);
-
-        if (!isset($uploadResult['token'])) {
-            throw new SerializationException('Could not find "token" in upload server response.');
+            return match ($type) {
+                UploadType::Audio => new AudioAttachmentRequest($uploadEndpoint->token),
+                UploadType::Video => new VideoAttachmentRequest($uploadEndpoint->token),
+            };
         }
 
-        return match ($type) {
-            UploadType::Image => PhotoAttachmentRequest::fromToken($uploadResult['token']),
-            UploadType::Video => new VideoAttachmentRequest($uploadResult['token']),
-            UploadType::Audio => new AudioAttachmentRequest($uploadResult['token']),
-            UploadType::File => new FileAttachmentRequest($uploadResult['token']), // @phpstan-ignore-line
-            default => throw new LogicException(
-                "Attachment creation for type '$type->value' is not yet implemented."
-            ),
-        };
+        // For images and files, the token is in the response *after* the upload.
+        $responseBody = $this->client->upload($uploadEndpoint->url, $fileHandle, basename($filePath));
+        fclose($fileHandle);
+
+        try {
+            $uploadResult = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new SerializationException('Failed to decode upload server response JSON.', 0, $e);
+        }
+
+        // Using switch because match expression arms cannot be code blocks.
+        switch ($type) {
+            case UploadType::Image:
+                $photoData = current($uploadResult['photos'] ?? []); // Get first photo from response
+                if (!isset($photoData['token'])) {
+                    throw new SerializationException('Could not find "token" in photo upload response.');
+                }
+                return PhotoAttachmentRequest::fromToken($photoData['token']);
+            case UploadType::File:
+                if (!isset($uploadResult['token'])) {
+                    throw new SerializationException('Could not find "token" in file upload response.');
+                }
+                return new FileAttachmentRequest($uploadResult['token']);
+        }
+
+        // @codeCoverageIgnoreStart
+        throw new LogicException("Attachment creation for type '$type->value' is not yet implemented."); // @phpstan-ignore-line
+        // @codeCoverageIgnoreEnd
     }
 
     /**

@@ -451,24 +451,59 @@ final class ApiTest extends TestCase
     }
 
     #[Test]
-    public function uploadAttachmentSuccessfullyUploadsImageAndReturnsAttachment(): void
+    public function uploadAttachmentForImage(): void
     {
-        $filePath = tempnam(sys_get_temp_dir(), 'test_upload_');
-        file_put_contents($filePath, 'fake-image-content');
+        $filePath = $this->createTempFile('image-content');
+        $uploadUrl = 'https://upload.server/image';
+        $uploadResponseJson = '{"photos":{"random_key_123":{"token":"final_image_token"}}}';
+        $expectedAttachment = PhotoAttachmentRequest::fromToken('final_image_token');
 
-        $uploadType = UploadType::Image;
-        $uploadUrl = 'https://upload.server/gohere';
-        $uploadToken = 'FINAL_TOKEN_123';
+        $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
+        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
 
-        $getUploadUrlResponse = ['url' => $uploadUrl];
-        $uploadResponse = ['token' => $uploadToken];
-        $expectedEndpoint = new UploadEndpoint($uploadUrl);
-        $expectedAttachment = PhotoAttachmentRequest::fromToken($uploadToken);
+        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+
+        $result = $this->api->uploadAttachment(UploadType::Image, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentForFile(): void
+    {
+        $filePath = $this->createTempFile('file-content');
+        $uploadUrl = 'https://upload.server/file';
+        $uploadResponseJson = '{"token":"final_file_token"}';
+        $expectedAttachment = new FileAttachmentRequest('final_file_token');
+
+        $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
+        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
+
+        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+
+        $result = $this->api->uploadAttachment(UploadType::File, $filePath);
+
+        $this->assertEquals($expectedAttachment, $result);
+        unlink($filePath);
+    }
+
+    #[Test]
+    public function uploadAttachmentForAudio(): void
+    {
+        $filePath = $this->createTempFile('audio-content');
+        $uploadUrl = 'https://upload.server/audio';
+        $preUploadToken = 'pre_upload_audio_token';
+        $uploadResponse = '<retval>1</retval>';
+        $expectedAttachment = new AudioAttachmentRequest($preUploadToken);
+
+        $getUploadUrlResponse = ['url' => $uploadUrl, 'token' => $preUploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl, $preUploadToken);
 
         $this->clientMock
             ->expects($this->once())
             ->method('request')
-            ->with('POST', '/uploads', ['type' => $uploadType->value])
+            ->with('POST', '/uploads', ['type' => UploadType::Audio->value])
             ->willReturn($getUploadUrlResponse);
 
         $this->modelFactoryMock
@@ -483,7 +518,7 @@ final class ApiTest extends TestCase
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn($uploadResponse);
 
-        $result = $this->api->uploadAttachment($uploadType, $filePath);
+        $result = $this->api->uploadAttachment(UploadType::Audio, $filePath);
 
         $this->assertEquals($expectedAttachment, $result);
 
@@ -491,27 +526,47 @@ final class ApiTest extends TestCase
     }
 
     #[Test]
-    public function uploadAttachmentForMultiplePhotosReturnsCorrectAttachment(): void
+    public function uploadAttachmentForVideo(): void
     {
-        $filePath = tempnam(sys_get_temp_dir(), 'test_');
-        file_put_contents($filePath, 'content');
+        $filePath = $this->createTempFile('video-content');
+        $uploadUrl = 'https://upload.server/video';
+        $preUploadToken = 'pre_upload_video_token';
+        $uploadResponse = '<retval>1</retval>';
+        $expectedAttachment = new VideoAttachmentRequest($preUploadToken);
 
-        $getUploadUrlResponse = ['url' => 'http://upload.server'];
-        $expectedEndpoint = new UploadEndpoint('http://upload.server');
+        $getUploadUrlResponse = ['url' => $uploadUrl, 'token' => $preUploadToken];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl, $preUploadToken);
 
-        $uploadResponse = ['token' => 'token'];
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => UploadType::Video->value])
+            ->willReturn($getUploadUrlResponse);
 
-        $expectedAttachment = PhotoAttachmentRequest::fromToken('token');
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
 
-        $this->clientMock->method('request')->willReturn($getUploadUrlResponse);
-        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn($expectedEndpoint);
-        $this->clientMock->method('upload')->willReturn($uploadResponse);
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->with($uploadUrl, $this->isResource(), basename($filePath))
+            ->willReturn($uploadResponse);
 
-        $result = $this->api->uploadAttachment(UploadType::Image, $filePath);
+        $result = $this->api->uploadAttachment(UploadType::Video, $filePath);
 
         $this->assertEquals($expectedAttachment, $result);
 
         unlink($filePath);
+    }
+
+    private function createTempFile(string $content): string
+    {
+        $filePath = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($filePath, $content);
+        return $filePath;
     }
 
     #[Test]
@@ -673,96 +728,16 @@ final class ApiTest extends TestCase
             ->expects($this->once())
             ->method('upload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
-            ->willReturn($invalidUploadResponse);
+            ->willReturn(json_encode($invalidUploadResponse));
 
         $this->expectException(SerializationException::class);
-        $this->expectExceptionMessage('Could not find "token" in upload server response.');
+        $this->expectExceptionMessage('Could not find "token" in photo upload response.');
 
         try {
             $this->api->uploadAttachment($uploadType, $filePath);
         } finally {
             unlink($filePath);
         }
-    }
-
-    #[Test]
-    public function uploadAttachmentSuccessfullyUploadsVideoAndReturnsAttachment(): void
-    {
-        $filePath = tempnam(sys_get_temp_dir(), 'test_video_');
-        file_put_contents($filePath, 'fake-video-content');
-
-        $uploadType = UploadType::Video;
-        $uploadUrl = 'https://upload.server/video_path';
-        $uploadToken = 'VIDEO_TOKEN_XYZ';
-
-        $getUploadUrlResponse = ['url' => $uploadUrl];
-        $uploadResponse = ['token' => $uploadToken];
-        $expectedEndpoint = new UploadEndpoint($uploadUrl);
-        $expectedAttachment = new VideoAttachmentRequest($uploadToken);
-
-        $this->clientMock
-            ->expects($this->once())
-            ->method('request')
-            ->with('POST', '/uploads', ['type' => $uploadType->value])
-            ->willReturn($getUploadUrlResponse);
-
-        $this->modelFactoryMock
-            ->expects($this->once())
-            ->method('createUploadEndpoint')
-            ->with($getUploadUrlResponse)
-            ->willReturn($expectedEndpoint);
-
-        $this->clientMock
-            ->expects($this->once())
-            ->method('upload')
-            ->with($uploadUrl, $this->isResource(), basename($filePath))
-            ->willReturn($uploadResponse);
-
-        $result = $this->api->uploadAttachment($uploadType, $filePath);
-
-        $this->assertEquals($expectedAttachment, $result);
-
-        unlink($filePath);
-    }
-
-    #[Test]
-    public function uploadAttachmentSuccessfullyUploadsAudioAndReturnsAttachment(): void
-    {
-        $filePath = tempnam(sys_get_temp_dir(), 'test_audio_');
-        file_put_contents($filePath, 'fake-audio-content');
-
-        $uploadType = UploadType::Audio;
-        $uploadUrl = 'https://upload.server/audio_path';
-        $uploadToken = 'AUDIO_TOKEN_ABC';
-
-        $getUploadUrlResponse = ['url' => $uploadUrl];
-        $uploadResponse = ['token' => $uploadToken];
-        $expectedEndpoint = new UploadEndpoint($uploadUrl);
-        $expectedAttachment = new AudioAttachmentRequest($uploadToken);
-
-        $this->clientMock
-            ->expects($this->once())
-            ->method('request')
-            ->with('POST', '/uploads', ['type' => $uploadType->value])
-            ->willReturn($getUploadUrlResponse);
-
-        $this->modelFactoryMock
-            ->expects($this->once())
-            ->method('createUploadEndpoint')
-            ->with($getUploadUrlResponse)
-            ->willReturn($expectedEndpoint);
-
-        $this->clientMock
-            ->expects($this->once())
-            ->method('upload')
-            ->with($uploadUrl, $this->isResource(), basename($filePath))
-            ->willReturn($uploadResponse);
-
-        $result = $this->api->uploadAttachment($uploadType, $filePath);
-
-        $this->assertEquals($expectedAttachment, $result);
-
-        unlink($filePath);
     }
 
     #[Test]
@@ -796,7 +771,7 @@ final class ApiTest extends TestCase
             ->expects($this->once())
             ->method('upload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
-            ->willReturn($uploadResponse);
+            ->willReturn(json_encode($uploadResponse));
 
         $result = $this->api->uploadAttachment($uploadType, $filePath);
 
@@ -1991,5 +1966,89 @@ final class ApiTest extends TestCase
             accessToken: null,
             client: null
         );
+    }
+
+    #[Test]
+    public function uploadAttachmentThrowsSerializationExceptionOnInvalidUploadResponse(): void
+    {
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage('Failed to decode upload server response JSON.');
+
+        $filePath = $this->createTempFile('image-content');
+        $uploadUrl = 'https://upload.server/image';
+        $invalidJsonResponse = '{not-valid-json';
+
+        $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
+        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->willReturn($invalidJsonResponse);
+
+        try {
+            $this->api->uploadAttachment(UploadType::Image, $filePath);
+        } finally {
+            unlink($filePath);
+        }
+    }
+
+    #[Test]
+    public function uploadAttachmentForVideoThrowsExceptionOnMissingPreUploadToken(): void
+    {
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage("API did not return a pre-upload token for type 'video'.");
+
+        $filePath = $this->createTempFile('video-content');
+        $uploadUrl = 'https://upload.server/video';
+
+        $getUploadUrlResponse = ['url' => $uploadUrl];
+        $expectedEndpoint = new UploadEndpoint($uploadUrl, null);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/uploads', ['type' => UploadType::Video->value])
+            ->willReturn($getUploadUrlResponse);
+
+        $this->modelFactoryMock
+            ->expects($this->once())
+            ->method('createUploadEndpoint')
+            ->with($getUploadUrlResponse)
+            ->willReturn($expectedEndpoint);
+
+        $this->clientMock->expects($this->never())->method('upload');
+
+        try {
+            $this->api->uploadAttachment(UploadType::Video, $filePath);
+        } finally {
+            unlink($filePath);
+        }
+    }
+
+    #[Test]
+    public function uploadAttachmentForFileThrowsExceptionOnMissingPostUploadToken(): void
+    {
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessage('Could not find "token" in file upload response.');
+
+        $filePath = $this->createTempFile('file-content');
+        $uploadUrl = 'https://upload.server/file';
+
+        $invalidUploadResponse = json_encode(['status' => 'success', 'file_id' => 123]);
+
+        $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
+        $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('upload')
+            ->willReturn($invalidUploadResponse);
+
+        try {
+            $this->api->uploadAttachment(UploadType::File, $filePath);
+        } finally {
+            unlink($filePath);
+        }
     }
 }

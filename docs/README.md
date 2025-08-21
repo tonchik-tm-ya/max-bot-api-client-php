@@ -31,6 +31,7 @@
     - `GET /updates` (`getUpdates`) - [*Получение обновлений через Long-Polling.*](#Получение-обновлений-через-Long-Polling)
 - [Загрузка файлов](#Загрузка-файлов)
     - `POST /uploads` (`getUploadUrl`) - [*Получение URL для загрузки файла.*](#Получение-URL-для-загрузки-файла)
+    - `uploadAttachment` - [*Загрузка файла.*](#Загрузка-файла)
 - [Сообщения](#Сообщения)
     - `GET /messages` (`getMessages`) - [*Получение списка сообщений из чата.*](#Получение-списка-сообщений-из-чата)
     - `POST /messages` (`sendMessage`) - [*Отправка сообщения.*](#Отправка-сообщения)
@@ -308,6 +309,18 @@ $updateList = $api->getUpdates(
 
 ```php
 $uploadEndpoint = $api->getUploadUrl(UploadType::Video);
+// Далее вы можете загрузить файл по полученному URL самостоятельно или воспользоваться методом Client::upload()
+```
+
+### Загрузка файла
+
+Данный метод получит URL для загрузки, отправит файл и вернет готовый аттачмент
+
+```php
+$photoAttachmentRequest = $api->uploadAttachment(
+    type: UploadType::Image,
+    filePath: __DIR__ . '/test.jpg',
+);
 ```
 
 ## Сообщения
@@ -327,11 +340,17 @@ $messages = $api->getMessages(
 ### Отправка сообщения
 
 ```php
+$fileAttachmentRequest = $api->uploadAttachment(
+    type: UploadType::File,
+    filePath: __DIR__ . '/test.pdf',
+);
+
 $message = $api->sendMessage(
     userId: 12345,                      // Если вы отправляете сообщение пользователю, укажите его ID (необязательно)
     chatId: 54321,                      // Если сообщение отправляется в чат, укажите его ID (необязательно)
     text: 'Привет мир!',                // Текст сообщения (необязательно)
     attachments: [                      // Прикрепленные элементы (необязательно)
+        $fileAttachmentRequest,
         PhotoAttachmentRequest::fromUrl('https://example.com/image.jpg'),
         new LocationAttachmentRequest(
             latitude: 55.7520233,

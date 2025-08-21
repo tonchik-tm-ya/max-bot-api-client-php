@@ -122,7 +122,7 @@ final readonly class Client implements ClientApiInterface
     /**
      * @inheritDoc
      */
-    public function upload(string $uri, mixed $fileContents, string $fileName): array
+    public function upload(string $uri, mixed $fileContents, string $fileName): string
     {
         $boundary = '--------------------------' . microtime(true);
         $bodyStream = $this->streamFactory->createStream();
@@ -152,13 +152,7 @@ final readonly class Client implements ClientApiInterface
 
         $this->handleErrorResponse($response);
 
-        $responseBody = (string)$response->getBody();
-
-        try {
-            return json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $e) {
-            throw new SerializationException('Failed to decode upload server response JSON.', 0, $e);
-        }
+        return (string)$response->getBody();
     }
 
     /**
