@@ -51,11 +51,18 @@ use BushlanovDev\MaxMessengerBot\Api;
 
 $api = new Api('YOUR_BOT_API_TOKEN');
 
+// Загрузка файла
+$fileAttachmentRequest = $api->uploadAttachment(
+    type: UploadType::File,
+    filePath: __DIR__ . '/test.pdf',
+);
+
 $api->sendMessage(
     userId: 123,     // ID пользователя получателя сообщения
     chatId: 321,     // Или ID чата, в который нужно отправить сообщение
     text: 'Привет!', // Текст сообщения, вы можете использовать HTML или Markdown
     attachments: [
+        $fileAttachmentRequest,
         new InlineKeyboardAttachmentRequest([
             [new CallbackButton('Нажми меня!', 'payload_button1')],
             [new LinkButton('Нажми меня!', 'https://example.com')],
