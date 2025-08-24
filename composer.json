@@ -24,7 +24,7 @@
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.77",
-    "jaschilz/php-coverage-badger": "^2.0",
+    "bushlanov-dev/php-coverage-badger": "^2.1",
     "laravel/framework": "^11.0",
     "mikey179/vfsstream": "^1.6",
     "mockery/mockery": "^1.6",
@@ -62,6 +62,9 @@
     "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes src",
     "test": "vendor/bin/phpunit",
     "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
-    "create-coverage-badge": ["vendor/bin/phpunit --coverage-clover clover.xml", "vendor/bin/php-coverage-badger clover.xml badge-coverage.svg"]
+      "create-coverage-badge": [
+          "vendor/bin/phpunit --coverage-clover clover.xml",
+          "vendor/bin/php-coverage-badger --square clover.xml .github/badge-coverage.svg"
+      ]
   }
 }

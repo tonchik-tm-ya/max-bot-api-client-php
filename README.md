@@ -1,7 +1,7 @@
 # Max Bot API Client library for PHP
 
 [![Actions status](https://github.com/BushlanovDev/max-bot-api-client-php/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
-[![Coverage](https://raw.githubusercontent.com/BushlanovDev/max-bot-api-client-php/refs/heads/master/badge-coverage.svg?v=1)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
+[![Coverage](https://raw.githubusercontent.com/BushlanovDev/max-bot-api-client-php/refs/heads/master/.github/badge-coverage.svg?v=2)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
 [![Packagist Version](https://img.shields.io/packagist/v/bushlanov-dev/max-bot-api-client-php.svg?style=flat-square)](https://packagist.org/packages/bushlanov-dev/max-bot-api-client-php)
 [![PHP version](https://img.shields.io/badge/php-%3E%3D%208.3-8892BF.svg?style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php)
 [![Laravel](https://img.shields.io/badge/%20Laravel%20Package-available-success?logo=laravel&style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php)
