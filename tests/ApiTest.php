@@ -461,7 +461,7 @@ final class ApiTest extends TestCase
         $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
         $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
 
-        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+        $this->clientMock->method('multipartUpload')->willReturn($uploadResponseJson);
 
         $result = $this->api->uploadAttachment(UploadType::Image, $filePath);
 
@@ -480,7 +480,7 @@ final class ApiTest extends TestCase
         $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
         $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
 
-        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+        $this->clientMock->method('multipartUpload')->willReturn($uploadResponseJson);
 
         $result = $this->api->uploadAttachment(UploadType::File, $filePath);
 
@@ -514,7 +514,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn($uploadResponse);
 
@@ -551,7 +551,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn($uploadResponse);
 
@@ -726,7 +726,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn(json_encode($invalidUploadResponse));
 
@@ -769,7 +769,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn(json_encode($uploadResponse));
 
@@ -1983,7 +1983,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->willReturn($invalidJsonResponse);
 
         try {
@@ -2017,7 +2017,7 @@ final class ApiTest extends TestCase
             ->with($getUploadUrlResponse)
             ->willReturn($expectedEndpoint);
 
-        $this->clientMock->expects($this->never())->method('upload');
+        $this->clientMock->expects($this->never())->method('multipartUpload');
 
         try {
             $this->api->uploadAttachment(UploadType::Video, $filePath);
@@ -2042,7 +2042,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->willReturn($invalidUploadResponse);
 
         try {

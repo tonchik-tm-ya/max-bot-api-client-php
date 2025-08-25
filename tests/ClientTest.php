@@ -313,7 +313,7 @@ final class ClientTest extends TestCase
         $this->responseMock->method('getStatusCode')->willReturn(200);
         $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
 
-        $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
+        $result = $this->client->multipartUpload($uploadUrl, $fileContents, $fileName);
         $this->assertSame(json_encode($responsePayload), $result);
     }
 
@@ -336,7 +336,7 @@ final class ClientTest extends TestCase
         $this->responseMock->method('getStatusCode')->willReturn(200);
         $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
 
-        $result = $this->client->upload($uploadUrl, $tmpFileHandle, $fileName);
+        $result = $this->client->multipartUpload($uploadUrl, $tmpFileHandle, $fileName);
 
         $this->assertSame(json_encode($responsePayload), $result);
         fclose($tmpFileHandle);
@@ -358,7 +358,7 @@ final class ClientTest extends TestCase
             ->with($this->requestMock)
             ->willThrowException($psrException);
 
-        $this->client->upload('http://some.url', 'content', 'file.txt');
+        $this->client->multipartUpload('http://some.url', 'content', 'file.txt');
     }
 
     #[Test]
@@ -406,7 +406,7 @@ final class ClientTest extends TestCase
         $this->responseMock->method('getStatusCode')->willReturn(200);
         $this->streamMock->method('__toString')->willReturn($rawResponse);
 
-        $result = $this->client->upload($uploadUrl, $fileContents, $fileName);
+        $result = $this->client->multipartUpload($uploadUrl, $fileContents, $fileName);
         $this->assertSame($rawResponse, $result);
     }
 }
