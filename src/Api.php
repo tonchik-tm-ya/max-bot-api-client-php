@@ -75,6 +75,8 @@ class Api
     private const string ACTION_ANSWERS = '/answers';
     private const string ACTION_VIDEO_DETAILS = '/videos/%s';
 
+    private const int RESUMABLE_UPLOAD_THRESHOLD_BYTES = 10 * 1024 * 1024; // 10 MB
+
     private readonly ClientApiInterface $client;
 
     private readonly ModelFactory $modelFactory;
@@ -444,6 +446,33 @@ class Api
     }
 
     /**
+     * @param string $uploadUrl The target URL for the upload.
+     * @param resource $fileHandle A stream resource pointing to the file.
+     * @param string $fileName The desired file name for the upload.
+     *
+     * @return string The body of the final response from the server.
+     * @throws ClientApiException
+     * @throws NetworkException
+     * @throws SerializationException
+     * @throws RuntimeException
+     */
+    public function uploadFile(string $uploadUrl, mixed $fileHandle, string $fileName): string
+    {
+        $stat = fstat($fileHandle);
+        if (!is_array($stat)) {
+            throw new RuntimeException('File handle is not a valid resource.');
+        }
+
+        rewind($fileHandle);
+
+        if ($stat['size'] < self::RESUMABLE_UPLOAD_THRESHOLD_BYTES) {
+            return $this->client->multipartUpload($uploadUrl, $fileHandle, $fileName);
+        }
+
+        return $this->client->resumableUpload($uploadUrl, $fileHandle, $fileName, $stat['size']);
+    }
+
+    /**
      * A simplified method for uploading a file and getting the resulting attachment object.
      *
      * @param UploadType $type Uploaded file type.
@@ -479,7 +508,8 @@ class Api
                     "API did not return a pre-upload token for type '$type->value'."
                 );
             }
-            $this->client->upload($uploadEndpoint->url, $fileHandle, basename($filePath));
+
+            $this->uploadFile($uploadEndpoint->url, $fileHandle, basename($filePath));
             fclose($fileHandle);
 
             return match ($type) {
@@ -489,7 +519,7 @@ class Api
         }
 
         // For images and files, the token is in the response *after* the upload.
-        $responseBody = $this->client->upload($uploadEndpoint->url, $fileHandle, basename($filePath));
+        $responseBody = $this->uploadFile($uploadEndpoint->url, $fileHandle, basename($filePath));
         fclose($fileHandle);
 
         try {

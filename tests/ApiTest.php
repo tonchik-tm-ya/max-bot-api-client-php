@@ -461,7 +461,7 @@ final class ApiTest extends TestCase
         $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
         $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
 
-        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+        $this->clientMock->method('multipartUpload')->willReturn($uploadResponseJson);
 
         $result = $this->api->uploadAttachment(UploadType::Image, $filePath);
 
@@ -480,7 +480,7 @@ final class ApiTest extends TestCase
         $this->clientMock->method('request')->willReturn(['url' => $uploadUrl]);
         $this->modelFactoryMock->method('createUploadEndpoint')->willReturn(new UploadEndpoint($uploadUrl));
 
-        $this->clientMock->method('upload')->willReturn($uploadResponseJson);
+        $this->clientMock->method('multipartUpload')->willReturn($uploadResponseJson);
 
         $result = $this->api->uploadAttachment(UploadType::File, $filePath);
 
@@ -514,7 +514,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn($uploadResponse);
 
@@ -551,7 +551,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn($uploadResponse);
 
@@ -726,7 +726,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn(json_encode($invalidUploadResponse));
 
@@ -769,7 +769,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->with($uploadUrl, $this->isResource(), basename($filePath))
             ->willReturn(json_encode($uploadResponse));
 
@@ -1983,7 +1983,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->willReturn($invalidJsonResponse);
 
         try {
@@ -2017,7 +2017,7 @@ final class ApiTest extends TestCase
             ->with($getUploadUrlResponse)
             ->willReturn($expectedEndpoint);
 
-        $this->clientMock->expects($this->never())->method('upload');
+        $this->clientMock->expects($this->never())->method('multipartUpload');
 
         try {
             $this->api->uploadAttachment(UploadType::Video, $filePath);
@@ -2042,7 +2042,7 @@ final class ApiTest extends TestCase
 
         $this->clientMock
             ->expects($this->once())
-            ->method('upload')
+            ->method('multipartUpload')
             ->willReturn($invalidUploadResponse);
 
         try {
@@ -2050,5 +2050,88 @@ final class ApiTest extends TestCase
         } finally {
             unlink($filePath);
         }
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function uploadFileUsesMultipartForSmallFiles(): void
+    {
+        $uploadUrl = 'https://upload.server/path';
+        $fileName = 'small.txt';
+        $fileContents = 'content';
+        $fileHandle = fopen('php://memory', 'w+');
+        fwrite($fileHandle, $fileContents);
+        rewind($fileHandle);
+
+        $smallFileSize = strlen($fileContents);
+        $expectedResponse = 'multipart-response';
+
+        $fstatMock = $this->getFunctionMock('BushlanovDev\MaxMessengerBot', 'fstat');
+        $fstatMock->expects($this->once())->with($fileHandle)->willReturn(['size' => $smallFileSize]);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('multipartUpload')
+            ->with($uploadUrl, $fileHandle, $fileName)
+            ->willReturn($expectedResponse);
+
+        $this->clientMock
+            ->expects($this->never())
+            ->method('resumableUpload');
+
+        $result = $this->api->uploadFile($uploadUrl, $fileHandle, $fileName);
+
+        $this->assertSame($expectedResponse, $result);
+        fclose($fileHandle);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function uploadFileUsesResumableForLargeFiles(): void
+    {
+        $uploadUrl = 'https://upload.server/path';
+        $fileName = 'large.zip';
+        $fileHandle = fopen('php://memory', 'w+');
+
+        rewind($fileHandle);
+
+        $largeFileSize = 10 * 1024 * 1024;
+        $expectedResponse = 'resumable-response';
+
+        $fstatMock = $this->getFunctionMock('BushlanovDev\MaxMessengerBot', 'fstat');
+        $fstatMock->expects($this->once())->with($fileHandle)->willReturn(['size' => $largeFileSize]);
+
+        $this->clientMock
+            ->expects($this->once())
+            ->method('resumableUpload')
+            ->with($uploadUrl, $fileHandle, $fileName, $largeFileSize)
+            ->willReturn($expectedResponse);
+
+        $this->clientMock
+            ->expects($this->never())
+            ->method('multipartUpload');
+
+        $result = $this->api->uploadFile($uploadUrl, $fileHandle, $fileName);
+
+        $this->assertSame($expectedResponse, $result);
+        fclose($fileHandle);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function uploadFileThrowsExceptionWhenFstatFails(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('File handle is not a valid resource.');
+
+        $fileHandle = fopen('php://memory', 'r');
+
+        $fstatMock = $this->getFunctionMock('BushlanovDev\MaxMessengerBot', 'fstat');
+        $fstatMock->expects($this->once())->with($fileHandle)->willReturn(false);
+
+        $this->api->uploadFile('http://a.b', $fileHandle, 'file.txt');
     }
 }

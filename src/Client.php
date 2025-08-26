@@ -21,6 +21,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use RuntimeException;
 
 /**
  * The low-level HTTP client responsible for communicating with the Max Bot API.
@@ -122,7 +123,7 @@ final readonly class Client implements ClientApiInterface
     /**
      * @inheritDoc
      */
-    public function upload(string $uri, mixed $fileContents, string $fileName): string
+    public function multipartUpload(string $uri, mixed $fileContents, string $fileName): string
     {
         $boundary = '--------------------------' . microtime(true);
         $bodyStream = $this->streamFactory->createStream();
@@ -153,6 +154,67 @@ final readonly class Client implements ClientApiInterface
         $this->handleErrorResponse($response);
 
         return (string)$response->getBody();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function resumableUpload(
+        string $uploadUrl,
+        mixed $fileResource,
+        string $fileName,
+        int $fileSize,
+        int $chunkSize = 1048576,
+    ): string {
+        if (!is_resource($fileResource) || get_resource_type($fileResource) !== 'stream') {
+            throw new InvalidArgumentException('fileResource must be a valid stream resource.');
+        }
+
+        // @phpstan-ignore-next-line
+        if ($fileSize <= 0) {
+            throw new InvalidArgumentException('File size must be greater than 0.');
+        }
+
+        $startByte = 0;
+        $finalResponseBody = '';
+
+        while (!feof($fileResource)) {
+            $chunk = fread($fileResource, $chunkSize);
+            if ($chunk === false) {
+                throw new RuntimeException('Failed to read chunk from file stream.');
+            }
+
+            $chunkLength = strlen($chunk);
+            if ($chunkLength === 0) {
+                break;
+            }
+
+            $endByte = $startByte + $chunkLength - 1;
+
+            $chunkStream = $this->streamFactory->createStream($chunk);
+            $request = $this->requestFactory->createRequest('POST', $uploadUrl)
+                ->withBody($chunkStream)
+                ->withHeader('Content-Type', 'application/octet-stream')
+                ->withHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+                ->withHeader('Content-Range', "bytes {$startByte}-{$endByte}/{$fileSize}");
+
+            try {
+                $response = $this->httpClient->sendRequest($request);
+            } catch (ClientExceptionInterface $e) {
+                throw new NetworkException($e->getMessage(), $e->getCode(), $e);
+            }
+
+            $this->handleErrorResponse($response);
+
+            // The final response might contain the retval
+            $finalResponseBody = (string)$response->getBody();
+
+            $startByte += $chunkLength;
+        }
+
+        // According to docs, for video/audio the token is sent separately,
+        // and the upload response contains 'retval'. We return the body of the last response.
+        return $finalResponseBody;
     }
 
     /**
