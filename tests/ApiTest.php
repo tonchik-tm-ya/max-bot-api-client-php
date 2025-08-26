@@ -2053,6 +2053,8 @@ final class ApiTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function uploadFileUsesMultipartForSmallFiles(): void
     {
         $uploadUrl = 'https://upload.server/path';
@@ -2085,6 +2087,8 @@ final class ApiTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function uploadFileUsesResumableForLargeFiles(): void
     {
         $uploadUrl = 'https://upload.server/path';
@@ -2116,6 +2120,8 @@ final class ApiTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function uploadFileThrowsExceptionWhenFstatFails(): void
     {
         $this->expectException(RuntimeException::class);
@@ -2127,6 +2133,5 @@ final class ApiTest extends TestCase
         $fstatMock->expects($this->once())->with($fileHandle)->willReturn(false);
 
         $this->api->uploadFile('http://a.b', $fileHandle, 'file.txt');
-        fclose($fileHandle);
     }
 }
