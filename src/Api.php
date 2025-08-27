@@ -446,6 +446,8 @@ class Api
     }
 
     /**
+     * Uploads a file to the specified URL.
+     *
      * @param string $uploadUrl The target URL for the upload.
      * @param resource $fileHandle A stream resource pointing to the file.
      * @param string $fileName The desired file name for the upload.

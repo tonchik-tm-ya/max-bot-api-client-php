@@ -181,7 +181,9 @@ final readonly class Client implements ClientApiInterface
         while (!feof($fileResource)) {
             $chunk = fread($fileResource, $chunkSize);
             if ($chunk === false) {
+                // @codeCoverageIgnoreStart
                 throw new RuntimeException('Failed to read chunk from file stream.');
+                // @codeCoverageIgnoreEnd
             }
 
             $chunkLength = strlen($chunk);

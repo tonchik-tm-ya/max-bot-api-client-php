@@ -1,4 +1,4 @@
-# Max Bot API Client library for PHP
+# Max Messenger Bot API Client library for PHP
 
 [![Actions status](https://github.com/BushlanovDev/max-bot-api-client-php/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)
 [![Coverage](https://raw.githubusercontent.com/BushlanovDev/max-bot-api-client-php/refs/heads/master/.github/badge-coverage.svg?v=2)](https://github.com/BushlanovDev/max-bot-api-client-php/actions)

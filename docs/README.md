@@ -332,7 +332,8 @@ $updateList = $api->getUpdates(
 
 ```php
 $uploadEndpoint = $api->getUploadUrl(UploadType::Video);
-// Далее вы можете загрузить файл по полученному URL самостоятельно или воспользоваться методом Client::upload()
+// Далее вы можете загрузить файл по полученному URL самостоятельно
+// или воспользоваться методами Client::multipartUpload(), Client::resumableUpload(), Api::uploadFile()
 ```
 
 ### Загрузка файла

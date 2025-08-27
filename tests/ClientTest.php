@@ -451,4 +451,89 @@ final class ClientTest extends TestCase
         $this->client->resumableUpload('http://a.b', $fileResource, 'file.txt', 9);
         fclose($fileResource);
     }
+
+    #[Test]
+    public function resumableUploadSuccessfullyUploadsSingleChunk(): void
+    {
+        $fileContents = 'test-data';
+        $fileResource = fopen('php://memory', 'w+');
+        fwrite($fileResource, $fileContents);
+        rewind($fileResource);
+
+        $uploadUrl = 'http://a.b';
+        $fileName = 'file.txt';
+        $fileSize = strlen($fileContents);
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturnSelf();
+        $this->requestMock->method('withHeader')->willReturnSelf();
+
+        $this->httpClientMock
+            ->expects($this->once())
+            ->method('sendRequest')
+            ->with($this->requestMock)
+            ->willReturn($this->responseMock);
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock->method('__toString')->willReturn('<retval>1</retval>');
+
+        $result = $this->client->resumableUpload($uploadUrl, $fileResource, $fileName, $fileSize);
+
+        $this->assertSame('<retval>1</retval>', $result);
+        fclose($fileResource);
+    }
+
+    #[Test]
+    public function resumableUploadSuccessfullyUploadsMultipleChunks(): void
+    {
+        $fileContents = str_repeat('A', 3 * 1024 * 1024); // 3 MB
+        $fileResource = fopen('php://memory', 'w+');
+        fwrite($fileResource, $fileContents);
+        rewind($fileResource);
+
+        $uploadUrl = 'http://a.b';
+        $fileName = 'bigfile.bin';
+        $fileSize = strlen($fileContents);
+
+        $this->requestFactoryMock->method('createRequest')->willReturn($this->requestMock);
+        $this->requestMock->method('withBody')->willReturnSelf();
+        $this->requestMock->method('withHeader')->willReturnSelf();
+
+        $this->httpClientMock
+            ->expects($this->exactly(3))
+            ->method('sendRequest')
+            ->willReturnOnConsecutiveCalls(
+                $this->responseMock,
+                $this->responseMock,
+                $this->responseMock,
+            );
+
+        $this->responseMock->method('getStatusCode')->willReturn(200);
+        $this->streamMock
+            ->method('__toString')
+            ->willReturnOnConsecutiveCalls('', '', '<retval>1</retval>');
+
+        $result = $this->client->resumableUpload($uploadUrl, $fileResource, $fileName, $fileSize, 1024 * 1024);
+
+        $this->assertSame('<retval>1</retval>', $result);
+        fclose($fileResource);
+    }
+
+    #[Test]
+    public function resumableUploadStopsOnEmptyChunk(): void
+    {
+        $fileResource = fopen('php://memory', 'w+');
+        rewind($fileResource);
+
+        $uploadUrl = 'http://a.b';
+        $fileName = 'empty.txt';
+
+        $this->requestFactoryMock->expects($this->never())->method('createRequest');
+        $this->httpClientMock->expects($this->never())->method('sendRequest');
+
+        $result = $this->client->resumableUpload($uploadUrl, $fileResource, $fileName, 100);
+
+        $this->assertSame('', $result);
+        fclose($fileResource);
+    }
 }
