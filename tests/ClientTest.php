@@ -96,7 +96,6 @@ final class ClientTest extends TestCase
     {
         $uri = '/me';
         $expectedUrl = self::API_BASE_URL . $uri . '?' . http_build_query([
-                'access_token' => self::FAKE_TOKEN,
                 'v' => self::API_VERSION,
             ]);
         $responsePayload = ['id' => 987, 'name' => 'TestBot'];
@@ -138,7 +137,6 @@ final class ClientTest extends TestCase
         ];
         $responsePayload = ['success' => true];
         $expectedUrl = self::API_BASE_URL . $uri . '?' . http_build_query([
-                'access_token' => self::FAKE_TOKEN,
                 'v' => self::API_VERSION
             ]);
 
@@ -157,11 +155,21 @@ final class ClientTest extends TestCase
             }))
             ->willReturn($this->requestMock);
 
+        $callCount = 0;
         $this->requestMock
-            ->expects($this->once())
+            ->expects($this->exactly(2))
             ->method('withHeader')
-            ->with('Content-Type', 'application/json; charset=utf-8')
-            ->willReturn($this->requestMock);
+            ->willReturnCallback(function ($name, $value) use (&$callCount) {
+                $expectedCalls = [
+                    ['Content-Type', 'application/json; charset=utf-8'],
+                    ['Authorization', 'Bearer ' . self::FAKE_TOKEN],
+                ];
+                $this->assertEquals($expectedCalls[$callCount][0], $name);
+                $this->assertEquals($expectedCalls[$callCount][1], $value);
+                $callCount++;
+
+                return $this->requestMock;
+            });
 
         $this->responseMock->method('getStatusCode')->willReturn(200);
         $this->streamMock->method('__toString')->willReturn(json_encode($responsePayload));
