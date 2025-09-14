@@ -92,6 +92,8 @@ final class MaxBotServiceProviderTest extends TestCase
     #[PreserveGlobalState(false)]
     public function itThrowsExceptionWhenGuzzleIsMissing(): void
     {
+        error_reporting(E_ALL & ~E_DEPRECATED);
+
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage(
             'Guzzle HTTP client is required. Please run "composer require guzzlehttp/guzzle".'
